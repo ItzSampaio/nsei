@@ -1,53 +1,10 @@
-# NEXUS OS 4.0 — Desktop Edition
+# NEXUS OS 6.0 — Desktop Edition
 
-NEXUS OS 4.0 keeps the existing browser-based desktop experience and adds a separate Electron desktop shell for real Windows application packaging while preserving the GitHub Pages web version. The project stays fully client-side with HTML, CSS, and vanilla JavaScript, no backend, and local persistence.
+NEXUS OS 6.0 keeps the existing desktop experience and adds an integrated local Store, Spotlight launcher, desktop widgets, advanced snap layouts, live wallpapers, and Recovery backups. The project remains client-side with HTML, CSS, JavaScript, and Electron, with no backend service.
 
-## Run NEXUS OS from GitHub
+## Release status
 
-Choose one option:
-
-### Option A: Use it in your browser (recommended)
-
-1. Open the repository's [GitHub Pages settings](https://github.com/ItzSampaio/nsei/settings/pages).
-2. Find **Build and deployment**.
-3. For **Source**, choose **Deploy from a branch**.
-4. For **Branch**, choose `main`.
-5. For the folder, choose `/ (root)`.
-6. Click **Save**.
-7. Wait a few minutes. Refresh the Pages settings page; when GitHub shows that the site is published, click **Visit site**. The site address should be [https://itzsampaio.github.io/nsei/](https://itzsampaio.github.io/nsei/).
-8. If you see a 404, wait a little longer and try again. Confirm the selected branch is `main` and the folder is `/ (root)`.
-
-You cannot run the app by opening the GitHub code page or the README. GitHub Pages hosts the **web version**; it does not install the Windows desktop application.
-
-### Option B: Run the web version on your computer
-
-1. On the repository page, click the green **Code** button.
-2. Click **Download ZIP**.
-3. When the download finishes, right-click the ZIP file and choose **Extract All**.
-4. Open the extracted `nsei-main` folder.
-5. Double-click `index.html`. It should open in your default web browser.
-
-### Option C: Run the Windows desktop app (Electron)
-
-1. Install the current **Node.js LTS** release from [nodejs.org](https://nodejs.org/). npm is included with Node.js.
-2. Download the repository ZIP using **Code → Download ZIP**, then extract it as described above.
-3. Open the extracted project folder in File Explorer.
-4. Click the folder address bar, type `powershell`, and press **Enter** to open PowerShell in that folder.
-5. Install the project dependencies by running:
-
-```powershell
-npm install
-```
-
-6. Start NEXUS OS by running:
-
-```powershell
-npm run dev
-```
-
-7. To close the desktop app, close its window as you would any other Windows app.
-
-To build an installer yourself, run `npm run dist` in the same PowerShell window. The installer will be created locally at `dist\NEXUS OS Setup 4.0.0.exe`; it is not included in the GitHub source download. The Electron desktop browser has a known visual rendering issue, so the installer should be treated as a test build.
+This repository is configured as NEXUS OS 6.0.0. The feature modules are integrated into the existing desktop and preserve the original application registry and storage keys.
 
 ## Current verification status
 
@@ -55,6 +12,15 @@ To build an installer yourself, run `npm run dist` in the same PowerShell window
 - The native browser accepts navigation and updates its title and URL, but the website content area has rendered black in packaged-app testing. Treat native browser rendering as a known issue until it is visually verified.
 - The 18 app launchers are present. A complete functional test of all apps and the packaged browser features has not been completed.
 - The Windows installer is a test build, not a verified stable release.
+
+## NEXUS OS 6.0 features
+
+- **NEXUS Store:** local catalogue with search, install/enable/disable/uninstall state, and installation history. No arbitrary code is downloaded or executed.
+- **NEXUS Spotlight:** `Alt+Space` searches apps, settings, notes, documents, bookmarks, recent searches, and calculator expressions.
+- **Desktop Widgets:** add, move, resize, remove, and persist system and productivity widgets.
+- **Advanced Snap Layouts:** halves, top-bottom, four-corner, three-column, and saved custom arrangements.
+- **Live Wallpapers:** built-in animated wallpapers plus local image/video import with reduced-motion handling.
+- **NEXUS Recovery:** validated versioned backups with selective restore and a safety backup before changes.
 
 ## Desktop conversion
 
@@ -65,7 +31,9 @@ To build an installer yourself, run `npm run dist` in the same PowerShell window
 - The desktop browser implements tabs, Google search, navigation, bookmarks, persistent/searchable history, downloads with progress, and safe opening of completed downloads. Packaged-app rendering and complete feature behavior still require verification (see status above).
 - Browser bookmarks and history are stored under Electron's user-data directory; the browser session uses a persistent Chromium partition. Existing web-version localStorage and IndexedDB are not reset.
 - `electron/security.js` denies unhandled popup windows. Browser page popups become new tabs, while the OS renderer cannot be navigated to remote websites.
-- The Calculator app has a safe expression parser (no `eval` or `Function`), scientific functions, DEG/RAD mode, fractions, and an in-app calculation history.
+- The Calculator includes a safe expression parser (no `eval` or `Function`), scientific functions, DEG/RAD mode, fractions, history, graphing, numerical equation solving, sequences, statistics/regression, binomial probability, and a restricted Python-like console.
+- Graphing currently uses a fixed y-range of −10 to 10. Equation roots are approximate numerical results over the chosen interval, not symbolic proofs.
+- The Calculator's Python console is a local safe subset for arithmetic, variables, `print()`, and bounded `for`/`range()` loops. It is not a full Python interpreter and cannot access files, the network, or arbitrary browser APIs.
 - The original browser project remains usable by opening `index.html` directly or via a static host such as GitHub Pages.
 
 ## Electron development and packaging

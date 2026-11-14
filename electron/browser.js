@@ -559,6 +559,13 @@ function createBrowserManager() {
 
   return {
     createBrowserWindow,
+    getBookmarks() {
+      return persistentData.bookmarks.map((bookmark) => ({
+        id: String(bookmark.id || ''),
+        title: String(bookmark.title || bookmark.url || ''),
+        url: String(bookmark.url || '')
+      }));
+    },
     closeAll() {
       for (const browserWindow of windows.keys()) {
         if (!browserWindow.isDestroyed()) browserWindow.close();

@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('nexusDesktop', {
   openNativeBrowser: (url) => ipcRenderer.invoke('nexus:open-native-browser', url),
   notify: (title, body) => ipcRenderer.invoke('nexus:notify', { title, body }),
   getAppInfo: () => ipcRenderer.invoke('nexus:get-app-info'),
+  getBrowserBookmarks: () => ipcRenderer.invoke('nexus:get-browser-bookmarks'),
   browser: {
     newTab: (url) => ipcRenderer.invoke('browser:new-tab', url),
     activateTab: (id) => ipcRenderer.invoke('browser:activate-tab', id),

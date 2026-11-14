@@ -3,7 +3,7 @@
   const apps = [
     { id: 'terminal', name: 'Terminal', icon: 'terminal', description: 'Command line' },
     { id: 'explorer', name: 'File Explorer', icon: 'folder', description: 'Browse files' },
-    { id: 'calculator', name: 'Calculator', icon: 'calc', description: 'Quick calculations' },
+    { id: 'calculator', name: 'Calculator', icon: 'calc', description: 'Scientific and graphing tools' },
     { id: 'notes', name: 'Notes', icon: 'note', description: 'Your ideas' },
     { id: 'settings', name: 'Settings', icon: 'settings', description: 'Personalize NEXUS' },
     { id: 'about', name: 'About NEXUS', icon: 'info', description: 'System information' },
@@ -18,7 +18,10 @@
     { id: 'worldclock', name: 'World Clock', icon: 'worldclock', description: 'Time around the world' },
     { id: 'password', name: 'Password Generator', icon: 'password', description: 'Generate secure passwords' },
     { id: 'tasks', name: 'Task Manager', icon: 'tasks', description: 'Organize your work' },
-    { id: 'recycle', name: 'Recycle Bin', icon: 'recycle', description: 'Restore deleted notes and tasks' }
+    { id: 'recycle', name: 'Recycle Bin', icon: 'recycle', description: 'Restore deleted notes and tasks' },
+    { id: 'store', name: 'NEXUS Store', icon: 'store', description: 'Manage built-in apps' },
+    { id: 'widgets', name: 'Desktop Widgets', icon: 'widget', description: 'Add and arrange desktop widgets' },
+    { id: 'recovery', name: 'NEXUS Recovery', icon: 'recovery', description: 'Back up and restore your data' }
   ];
   const accentColors = { violet: ['#9c7cff', '156, 124, 255'], blue: ['#58a6ff', '88, 166, 255'], cyan: ['#49d6d1', '73, 214, 209'], rose: ['#ff75a0', '255, 117, 160'], amber: ['#f2b95f', '242, 185, 95'] };
   const wallpapers = {
@@ -36,6 +39,8 @@
   let currentSettings = window.NexusStorage.getSettings();
   let explorerPath = ['Home'];
   let explorerSelectedFile = null;
+  let explorerRenderCurrent = null;
+  let preserveExplorerSearch = false;
   let notes = window.NexusStorage.getNotes();
   let activeNoteId = null;
 
@@ -49,6 +54,7 @@
     document.documentElement.style.setProperty('--accent', accent);
     document.documentElement.style.setProperty('--accent-rgb', rgb);
     document.querySelector('.desktop').style.backgroundImage = wallpapers[currentSettings.wallpaper] || wallpapers.nexus;
+    window.NexusWallpaper?.apply(currentSettings.wallpaper);
     document.body.dataset.theme = currentSettings.theme || 'dark';
     document.documentElement.style.setProperty('--text', currentSettings.theme === 'light' ? '#191a2b' : '#f5f4fb');
     document.documentElement.style.setProperty('--muted', currentSettings.theme === 'light' ? '#65667a' : '#a4a4b9');
@@ -70,7 +76,7 @@
     return node;
   }
 
-  function evaluateScientificExpression(source, angleMode) {
+  function evaluateScientificExpression(source, angleMode, variables = {}) {
     const text = source.replace(/[×]/g, '*').replace(/[÷]/g, '/').replace(/[−]/g, '-').replace(/π/g, 'pi');
     const tokens = [];
     let offset = 0;
@@ -84,9 +90,9 @@
         offset += number[0].length;
         continue;
       }
-      const identifier = text.slice(offset).match(/^[a-zA-Z]+/);
+      const identifier = text.slice(offset).match(/^[a-zA-Z_][a-zA-Z0-9_]*/);
       if (identifier) {
-        tokens.push({ type: 'identifier', value: identifier[0].toLowerCase() });
+        tokens.push({ type: 'identifier', value: identifier[0].toLowerCase(), name: identifier[0] });
         offset += identifier[0].length;
         continue;
       }
@@ -148,6 +154,11 @@
       if (token.type === 'identifier') {
         if (token.value === 'pi') return Math.PI;
         if (token.value === 'e') return Math.E;
+        if (Object.prototype.hasOwnProperty.call(variables, token.name)) {
+          const value = Number(variables[token.name]);
+          if (!Number.isFinite(value)) throw new Error(`Invalid value for ${token.name}.`);
+          return value;
+        }
         if (!functions.has(token.value) || joined[cursor++]?.type !== '(') throw new Error(`Unknown function or constant: ${token.value}`);
         const args = [parseExpression(0)];
         while (joined[cursor]?.type === ',') {
@@ -251,16 +262,92 @@
     node.tabIndex = 0;
     node.innerHTML = `
       <section class="science-calc-main">
-        <header class="science-calc-header"><div><span class="science-brand-dot"></span><strong>Scientific</strong></div><button class="calc-angle" type="button" aria-label="Angle mode">DEG</button></header>
-        <div class="science-display">
-          <div class="calc-expression" aria-label="Expression"></div>
-          <div class="calc-result" aria-live="polite">0</div>
-          <div class="calc-answer-mode">NEXUS · MATH ENGINE</div>
+        <header class="science-calc-header">
+          <div class="science-calc-identity"><span class="science-brand-dot">N</span><span><strong>NEXUS SCIENCE</strong><small>Graphing and scientific suite</small></span></div>
+          <button class="calc-angle" type="button" aria-label="Angle mode">DEG</button>
+        </header>
+        <nav class="science-mode-tabs" aria-label="Calculator modes">
+          <button type="button" data-mode="calculate" aria-pressed="true">Calculate</button>
+          <button type="button" data-mode="graph" aria-pressed="false">Graph</button>
+          <button type="button" data-mode="equations" aria-pressed="false">Equations</button>
+          <button type="button" data-mode="sequences" aria-pressed="false">Sequences</button>
+          <button type="button" data-mode="statistics" aria-pressed="false">Statistics</button>
+          <button type="button" data-mode="probability" aria-pressed="false">Probability</button>
+          <button type="button" data-mode="python" aria-pressed="false">Python</button>
+        </nav>
+        <div class="calc-mode-panel" data-panel="calculate">
+          <div class="science-display">
+            <div class="science-display-caption"><span>INPUT</span><span class="calc-answer-mode">DEG · DECIMAL</span></div>
+            <div class="calc-expression" aria-label="Expression"></div>
+            <div class="calc-result" aria-live="polite">0</div>
+          </div>
+          <div class="science-keypad"></div>
         </div>
-        <div class="science-keypad"></div>
+        <section class="calc-mode-panel calc-tool-panel" data-panel="graph" hidden>
+          <h2>Function graph</h2><p class="calc-tool-description">Plot a function of x. The vertical view is fixed at −10 to 10.</p>
+          <form class="calc-tool-form graph-form">
+            <label>y = <input name="expression" value="x^2-4" aria-label="Graph expression"></label>
+            <label>x min <input name="minimum" type="number" value="-5" step="any"></label>
+            <label>x max <input name="maximum" type="number" value="5" step="any"></label>
+            <button type="submit">Plot</button>
+          </form>
+          <canvas class="calc-graph" aria-label="Graph of the entered function"></canvas>
+          <p class="calc-module-status graph-status" aria-live="polite">Enter an expression such as x^2-4, then select Plot.</p>
+        </section>
+        <section class="calc-mode-panel calc-tool-panel" data-panel="equations" hidden>
+          <h2>Equation solver</h2><p class="calc-tool-description">Find real roots of f(x) = 0 within the selected interval.</p>
+          <form class="calc-tool-form equation-form">
+            <label>f(x) = <input name="expression" value="x^2-4" aria-label="Equation expression"></label>
+            <label>From <input name="minimum" type="number" value="-10" step="any"></label>
+            <label>To <input name="maximum" type="number" value="10" step="any"></label>
+            <button type="submit">Solve</button>
+          </form>
+          <div class="calc-module-results equation-results" aria-live="polite">Roots will appear here.</div>
+        </section>
+        <section class="calc-mode-panel calc-tool-panel" data-panel="sequences" hidden>
+          <h2>Sequences</h2><p class="calc-tool-description">Generate terms from u(n+1) = f(n, u(n)); use n and u in the rule.</p>
+          <form class="calc-tool-form sequence-form">
+            <label>First term u(n₀) <input name="first" type="number" value="1" step="any"></label>
+            <label>Starting n₀ <input name="start" type="number" value="0" step="1"></label>
+            <label>Rule <input name="rule" value="u+n" aria-label="Sequence recurrence rule"></label>
+            <label>Terms <input name="count" type="number" value="10" min="1" max="100"></label>
+            <button type="submit">Generate</button>
+          </form>
+          <div class="calc-module-results sequence-results" aria-live="polite">Generated terms will appear here.</div>
+        </section>
+        <section class="calc-mode-panel calc-tool-panel" data-panel="statistics" hidden>
+          <h2>Statistics &amp; regression</h2><p class="calc-tool-description">Enter data separated by commas or spaces. Optional pairs use x,y separated by semicolons.</p>
+          <form class="calc-tool-form statistics-form">
+            <label>Data set <input name="data" value="1, 2, 3, 4, 5" aria-label="Statistical data set"></label>
+            <label>Regression pairs <input name="pairs" value="1,1; 2,2; 3,5; 4,4" aria-label="Regression coordinate pairs"></label>
+            <button type="submit">Analyze</button>
+          </form>
+          <div class="calc-module-results statistics-results" aria-live="polite">Summary statistics will appear here.</div>
+        </section>
+        <section class="calc-mode-panel calc-tool-panel" data-panel="probability" hidden>
+          <h2>Probability</h2><p class="calc-tool-description">Calculate permutations, combinations, and binomial probabilities.</p>
+          <form class="calc-tool-form probability-form">
+            <label>n <input name="n" type="number" value="10" min="0" max="170"></label>
+            <label>k <input name="k" type="number" value="5" min="0" max="170"></label>
+            <label>Success probability p <input name="p" type="number" value="0.5" min="0" max="1" step="any"></label>
+            <label>Binomial result
+              <select name="kind"><option value="exact">P(X = k)</option><option value="cumulative">P(X ≤ k)</option></select>
+            </label>
+            <button type="submit">Calculate</button>
+          </form>
+          <div class="calc-module-results probability-results" aria-live="polite">Probability results will appear here.</div>
+        </section>
+        <section class="calc-mode-panel calc-tool-panel" data-panel="python" hidden>
+          <h2>Python console <span class="calc-subset-badge">SAFE SUBSET</span></h2>
+          <p class="calc-tool-description">Local, restricted runner: arithmetic, variables, print(), and for-loops with range(). It does not execute arbitrary Python or access files/network.</p>
+          <textarea class="python-editor" aria-label="Python code" spellcheck="false">for n in range(1, 6):
+    print(n * n)</textarea>
+          <div class="python-actions"><button type="button" class="python-run">Run</button><button type="button" class="python-clear">Clear output</button></div>
+          <pre class="python-output" aria-live="polite">Output will appear here.</pre>
+        </section>
       </section>
       <aside class="science-history">
-        <div class="science-history-heading"><span>HISTORY</span><button type="button" class="calc-clear-history">Clear</button></div>
+        <div class="science-history-heading"><span><i></i>RECENT RESULTS</span><button type="button" class="calc-clear-history">Clear</button></div>
         <div class="science-history-list"><p>Calculations appear here.</p></div>
       </aside>`;
     const grid = node.querySelector('.science-keypad');
@@ -269,14 +356,21 @@
     const historyList = node.querySelector('.science-history-list');
     const answerMode = node.querySelector('.calc-answer-mode');
     const angleButton = node.querySelector('.calc-angle');
+    let activeMode = 'calculate';
+    const showMode = (mode) => {
+      activeMode = mode;
+      node.querySelectorAll('.science-mode-tabs button').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.mode === mode)));
+      node.querySelectorAll('.calc-mode-panel').forEach(panel => { panel.hidden = panel.dataset.panel !== mode; });
+      if (mode === 'graph' && node.dataset.graphRequested === 'true') drawGraph();
+    };
     const keys = [
       ['AC','utility'], ['DEL','utility'], ['(', 'function'], [')','function'], ['÷','operator'],
       ['sin','function'], ['cos','function'], ['tan','function'], ['asin','function'], ['acos','function'],
-      ['7',''], ['8',''], ['9',''], ['sqrt','function'], ['×','operator'],
+      ['7','number'], ['8','number'], ['9','number'], ['sqrt','function'], ['×','operator'],
       ['ln','function'], ['log','function'], ['!','function'], ['^','operator'], ['−','operator'],
-      ['4',''], ['5',''], ['6',''], ['x²','function'], ['+','operator'],
-      ['1',''], ['2',''], ['3',''], ['%','function'], ['=','equals'],
-      ['±','utility'], ['0',''], ['.',''], ['π','constant'], ['e','constant'],
+      ['4','number'], ['5','number'], ['6','number'], ['%','function'], ['+','operator'],
+      ['1','number'], ['2','number'], ['3','number'], ['Ans','constant'], ['abs','function'],
+      ['±','utility'], ['0','number'], ['.','number'], ['π','constant'], ['e','constant'],
       ['atan','function'], ['1/x','function'], ['a/b','function'], ['=','equals-wide']
     ];
     let value = '';
@@ -288,7 +382,7 @@
     const updateDisplay = (resultText = null) => {
       expression.textContent = value || '0';
       display.textContent = resultText ?? (value ? '' : '0');
-      answerMode.textContent = fractionMode ? 'FRACTION RESULT' : 'NEXUS · MATH ENGINE';
+      answerMode.textContent = `${angleMode} · ${fractionMode ? 'FRACTION' : 'DECIMAL'}`;
     };
     const renderHistory = () => {
       historyList.replaceChildren();
@@ -315,6 +409,377 @@
         historyList.append(button);
       });
     };
+    const showMessage = (target, message, isError = false) => {
+      target.replaceChildren();
+      const text = document.createElement('p');
+      text.className = isError ? 'calc-error' : '';
+      text.textContent = message;
+      target.append(text);
+    };
+    const formatNumber = value => String(Number(value.toPrecision(10)));
+    const solveEquation = (source, minimum, maximum) => {
+      if (!(Number.isFinite(minimum) && Number.isFinite(maximum) && minimum < maximum && Number.isFinite(maximum - minimum))) throw new Error('The interval minimum must be finite and less than the maximum.');
+      const evaluate = x => evaluateScientificExpression(source, angleMode, { x });
+      const roots = [];
+      const segments = 2000;
+      let leftX = minimum;
+      let previousX = leftX;
+      let previousY = NaN;
+      let leftY;
+      try { leftY = evaluate(leftX); } catch { leftY = NaN; }
+      for (let index = 1; index <= segments; index += 1) {
+        const rightX = minimum + (maximum - minimum) * index / segments;
+        let rightY;
+        try { rightY = evaluate(rightX); } catch { rightY = NaN; }
+        if (Number.isFinite(leftY) && Math.abs(leftY) < 1e-8) roots.push(leftX);
+        if (Number.isFinite(leftY) && Number.isFinite(rightY) && leftY * rightY < 0) {
+          let low = leftX;
+          let high = rightX;
+          let lowValue = leftY;
+          let validBracket = true;
+          for (let iteration = 0; iteration < 64; iteration += 1) {
+            const middle = (low + high) / 2;
+            let middleValue;
+            try { middleValue = evaluate(middle); } catch { validBracket = false; break; }
+            if (Math.abs(middleValue) < 1e-12) { low = middle; high = middle; break; }
+            if (lowValue * middleValue <= 0) high = middle;
+            else { low = middle; lowValue = middleValue; }
+          }
+          const root = (low + high) / 2;
+          let rootValue;
+          try { rootValue = evaluate(root); } catch { validBracket = false; }
+          if (validBracket && Math.abs(rootValue) < 1e-8) roots.push(root);
+        }
+        if (Number.isFinite(previousY) && Number.isFinite(leftY) && Number.isFinite(rightY) &&
+            Math.abs(leftY) <= Math.abs(previousY) && Math.abs(leftY) <= Math.abs(rightY)) {
+          let low = previousX;
+          let high = rightX;
+          const ratio = (Math.sqrt(5) - 1) / 2;
+          let first = high - ratio * (high - low);
+          let second = low + ratio * (high - low);
+          let firstValue;
+          let secondValue;
+          let candidate = NaN;
+          let candidateResidual = Infinity;
+          try {
+            firstValue = Math.abs(evaluate(first));
+            secondValue = Math.abs(evaluate(second));
+            for (let iteration = 0; iteration < 48; iteration += 1) {
+              if (firstValue <= secondValue) {
+                high = second; second = first; secondValue = firstValue;
+                first = high - ratio * (high - low); firstValue = Math.abs(evaluate(first));
+              } else {
+                low = first; first = second; firstValue = secondValue;
+                second = low + ratio * (high - low); secondValue = Math.abs(evaluate(second));
+              }
+            }
+            candidate = (low + high) / 2;
+            candidateResidual = Math.abs(evaluate(candidate));
+          } catch { candidateResidual = Infinity; }
+          if (candidateResidual < 1e-8) roots.push(candidate);
+        }
+        previousX = leftX;
+        previousY = leftY;
+        leftX = rightX;
+        leftY = rightY;
+      }
+      if (Number.isFinite(leftY) && Math.abs(leftY) < 1e-8) roots.push(leftX);
+      return roots.filter((root, index) => roots.findIndex(other => Math.abs(other - root) < 1e-6) === index);
+    };
+    const statistics = values => {
+      if (!values.length) throw new Error('Enter at least one data value.');
+      const sorted = values.slice().sort((a, b) => a - b);
+      const medianOf = list => {
+        const middle = Math.floor(list.length / 2);
+        return list.length % 2 ? list[middle] : (list[middle - 1] + list[middle]) / 2;
+      };
+      const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+      const sumSquares = values.reduce((sum, value) => sum + (value - mean) ** 2, 0);
+      if (!Number.isFinite(mean) || !Number.isFinite(sumSquares)) throw new Error('Statistics exceed the supported numeric range.');
+      const half = Math.floor(sorted.length / 2);
+      const lower = sorted.slice(0, half);
+      const upper = sorted.slice(Math.ceil(sorted.length / 2));
+      return {
+        count: values.length,
+        mean,
+        median: medianOf(sorted),
+        minimum: sorted[0],
+        maximum: sorted[sorted.length - 1],
+        q1: lower.length ? medianOf(lower) : sorted[0],
+        q3: upper.length ? medianOf(upper) : sorted[sorted.length - 1],
+        populationDeviation: Math.sqrt(sumSquares / values.length),
+        sampleDeviation: values.length > 1 ? Math.sqrt(sumSquares / (values.length - 1)) : 0
+      };
+    };
+    const combination = (n, k) => {
+      if (!Number.isInteger(n) || !Number.isInteger(k) || n < 0 || k < 0 || k > n || n > 170) throw new Error('Use integers with 0 ≤ k ≤ n ≤ 170.');
+      let result = 1;
+      const count = Math.min(k, n - k);
+      for (let index = 1; index <= count; index += 1) result = result * (n - count + index) / index;
+      if (!Number.isFinite(result)) throw new Error('Result is outside the supported numeric range.');
+      return result;
+    };
+    window.NexusCalculatorModules = Object.freeze({ solveEquation, statistics, combination });
+    const drawGraph = () => {
+      const canvas = node.querySelector('.calc-graph');
+      const form = node.querySelector('.graph-form');
+      if (!canvas || !form) return;
+      const context = canvas.getContext('2d');
+      const bounds = canvas.getBoundingClientRect();
+      if (!context || bounds.width < 2 || bounds.height < 2) return;
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(bounds.width * ratio);
+      canvas.height = Math.round(bounds.height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const width = bounds.width;
+      const height = bounds.height;
+      const data = new FormData(form);
+      const source = String(data.get('expression') || '');
+      const minimum = Number(data.get('minimum'));
+      const maximum = Number(data.get('maximum'));
+      if (!source || !Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum >= maximum || !Number.isFinite(maximum - minimum)) {
+        node.querySelector('.graph-status').textContent = 'Enter a function and an x minimum smaller than its maximum.';
+        return;
+      }
+      const xPixel = x => (x - minimum) / (maximum - minimum) * width;
+      const yPixel = y => (10 - y) / 20 * height;
+      context.clearRect(0, 0, width, height);
+      context.fillStyle = getComputedStyle(canvas).backgroundColor;
+      context.fillRect(0, 0, width, height);
+      context.strokeStyle = document.body.dataset.theme === 'light' ? 'rgba(25,26,43,.12)' : 'rgba(220,225,255,.12)';
+      context.lineWidth = 1;
+      context.beginPath();
+      for (let index = 0; index <= 10; index += 1) {
+        const x = index * width / 10;
+        const y = index * height / 10;
+        context.moveTo(x, 0); context.lineTo(x, height);
+        context.moveTo(0, y); context.lineTo(width, y);
+      }
+      context.stroke();
+      context.strokeStyle = document.body.dataset.theme === 'light' ? 'rgba(25,26,43,.55)' : 'rgba(220,225,255,.5)';
+      context.beginPath();
+      if (minimum <= 0 && maximum >= 0) { context.moveTo(xPixel(0), 0); context.lineTo(xPixel(0), height); }
+      context.moveTo(0, yPixel(0)); context.lineTo(width, yPixel(0));
+      context.stroke();
+      context.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#9c7cff';
+      context.lineWidth = 2.5;
+      context.beginPath();
+      let active = false;
+      let plotted = 0;
+      let firstError = '';
+      for (let pixel = 0; pixel <= width; pixel += 1) {
+        const x = minimum + (maximum - minimum) * pixel / width;
+        let y;
+        try { y = evaluateScientificExpression(source, angleMode, { x }); } catch (error) {
+          if (!firstError) firstError = error.message;
+          active = false;
+          continue;
+        }
+        if (Math.abs(y) > 10) { active = false; continue; }
+        if (!active) { context.moveTo(pixel, yPixel(y)); active = true; }
+        else context.lineTo(pixel, yPixel(y));
+        plotted += 1;
+      }
+      context.stroke();
+      node.querySelector('.graph-status').textContent = plotted
+        ? `y = ${source} · x from ${formatNumber(minimum)} to ${formatNumber(maximum)} · y from −10 to 10`
+        : `Could not plot this expression${firstError ? `: ${firstError}` : ' in the selected window.'}`;
+    };
+    const graphForm = node.querySelector('.graph-form');
+    graphForm.addEventListener('submit', event => { event.preventDefault(); node.dataset.graphRequested = 'true'; drawGraph(); });
+    let graphResizeObserver;
+    if (window.ResizeObserver) {
+      graphResizeObserver = new ResizeObserver(() => { if (activeMode === 'graph' && node.dataset.graphRequested === 'true') drawGraph(); });
+      graphResizeObserver.observe(node.querySelector('.calc-graph'));
+    }
+    node._nexusCleanup = () => graphResizeObserver?.disconnect();
+    node.querySelector('.equation-form').addEventListener('submit', event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const output = node.querySelector('.equation-results');
+      try {
+        const data = new FormData(form);
+        const roots = solveEquation(String(data.get('expression')), Number(data.get('minimum')), Number(data.get('maximum')));
+        if (!roots.length) { showMessage(output, 'No real roots found in this interval.'); return; }
+        output.replaceChildren();
+        const heading = document.createElement('p');
+        heading.textContent = `${roots.length} real root${roots.length === 1 ? '' : 's'} found:`;
+        const list = document.createElement('ul');
+        roots.forEach(root => { const item = document.createElement('li'); item.textContent = `x ≈ ${formatNumber(root)}`; list.append(item); });
+        output.append(heading, list);
+      } catch (error) { showMessage(output, error.message, true); }
+    });
+    node.querySelector('.sequence-form').addEventListener('submit', event => {
+      event.preventDefault();
+      try {
+        const form = event.currentTarget;
+        const data = new FormData(form);
+        const first = Number(data.get('first'));
+        const start = Number(data.get('start'));
+        const count = Number(data.get('count'));
+        const rule = String(data.get('rule') || '');
+        if (!Number.isFinite(first) || !Number.isInteger(start) || !Number.isInteger(count) || count < 1 || count > 100) throw new Error('Enter a finite first term, integer start, and 1–100 terms.');
+        const terms = [first];
+        for (let offset = 0; offset < count - 1; offset += 1) {
+          const next = evaluateScientificExpression(rule, angleMode, { n: start + offset, u: terms[offset] });
+          terms.push(next);
+        }
+        const output = node.querySelector('.sequence-results');
+        output.replaceChildren();
+        const list = document.createElement('ol');
+        list.start = start;
+        terms.forEach(term => { const item = document.createElement('li'); item.textContent = formatNumber(term); list.append(item); });
+        output.append(list);
+      } catch (error) { showMessage(node.querySelector('.sequence-results'), error.message, true); }
+    });
+    node.querySelector('.statistics-form').addEventListener('submit', event => {
+      event.preventDefault();
+      try {
+        const data = new FormData(event.currentTarget);
+        const values = String(data.get('data')).trim().split(/[\s,;]+/).filter(Boolean).map(Number);
+        if (values.some(value => !Number.isFinite(value))) throw new Error('Data set values must all be finite numbers.');
+        const summary = statistics(values);
+        const output = node.querySelector('.statistics-results');
+        output.replaceChildren();
+        const grid = document.createElement('dl');
+        [['Count', summary.count], ['Mean', summary.mean], ['Median', summary.median], ['Q1', summary.q1], ['Q3', summary.q3], ['Minimum', summary.minimum], ['Maximum', summary.maximum], ['Population σ', summary.populationDeviation], ['Sample s', summary.sampleDeviation]].forEach(([label, value]) => {
+          const term = document.createElement('dt'); term.textContent = label;
+          const description = document.createElement('dd'); description.textContent = formatNumber(Number(value));
+          grid.append(term, description);
+        });
+        const pairsText = String(data.get('pairs') || '').trim();
+        if (pairsText) {
+          const pairs = pairsText.split(';').map(pair => pair.split(/[,\s]+/).filter(Boolean).map(Number));
+          if (pairs.some(pair => pair.length !== 2 || pair.some(value => !Number.isFinite(value)))) throw new Error('Regression pairs must be x,y values separated by semicolons.');
+          if (pairs.length > 1) {
+            const meanX = pairs.reduce((sum, pair) => sum + pair[0], 0) / pairs.length;
+            const meanY = pairs.reduce((sum, pair) => sum + pair[1], 0) / pairs.length;
+            const denominator = pairs.reduce((sum, pair) => sum + (pair[0] - meanX) ** 2, 0);
+            if (denominator === 0) throw new Error('Regression x values must not all be identical.');
+            const slope = pairs.reduce((sum, pair) => sum + (pair[0] - meanX) * (pair[1] - meanY), 0) / denominator;
+            const intercept = meanY - slope * meanX;
+            const correlationDenominator = Math.sqrt(denominator * pairs.reduce((sum, pair) => sum + (pair[1] - meanY) ** 2, 0));
+            const correlation = correlationDenominator ? pairs.reduce((sum, pair) => sum + (pair[0] - meanX) * (pair[1] - meanY), 0) / correlationDenominator : 0;
+            if (![slope, intercept, correlation].every(Number.isFinite)) throw new Error('Regression exceeds the supported numeric range.');
+            [['Regression', `y = ${formatNumber(slope)}x + ${formatNumber(intercept)}`], ['Correlation r', correlation]].forEach(([label, value]) => {
+              const term = document.createElement('dt'); term.textContent = label;
+              const description = document.createElement('dd'); description.textContent = typeof value === 'number' ? formatNumber(value) : value;
+              grid.append(term, description);
+            });
+          }
+        }
+        output.append(grid);
+      } catch (error) { showMessage(node.querySelector('.statistics-results'), error.message, true); }
+    });
+    node.querySelector('.probability-form').addEventListener('submit', event => {
+      event.preventDefault();
+      try {
+        const data = new FormData(event.currentTarget);
+        const n = Number(data.get('n'));
+        const k = Number(data.get('k'));
+        const p = Number(data.get('p'));
+        const choose = combination(n, k);
+        if (!Number.isFinite(p) || p < 0 || p > 1) throw new Error('Probability p must be between 0 and 1.');
+        const exact = choose * Math.pow(p, k) * Math.pow(1 - p, n - k);
+        let probability = exact;
+        if (data.get('kind') === 'cumulative') {
+          probability = 0;
+          for (let item = 0; item <= k; item += 1) probability += combination(n, item) * Math.pow(p, item) * Math.pow(1 - p, n - item);
+        }
+        const output = node.querySelector('.probability-results');
+        output.replaceChildren();
+        let permutations = choose;
+        for (let value = 2; value <= k; value += 1) permutations *= value;
+        if (!Number.isFinite(permutations) || !Number.isFinite(probability)) throw new Error('Result is outside the supported numeric range.');
+        [['nPr', permutations], ['nCr', choose], [data.get('kind') === 'cumulative' ? 'P(X ≤ k)' : 'P(X = k)', probability]].forEach(([label, value]) => {
+          const item = document.createElement('div'); item.className = 'calc-probability-value';
+          const name = document.createElement('span'); name.textContent = label;
+          const result = document.createElement('strong'); result.textContent = formatNumber(value);
+          item.append(name, result); output.append(item);
+        });
+      } catch (error) { showMessage(node.querySelector('.probability-results'), error.message, true); }
+    });
+    const pythonEditor = node.querySelector('.python-editor');
+    const pythonOutput = node.querySelector('.python-output');
+    const runPythonSubset = source => {
+      if (source.length > 5000) throw new Error('Code is limited to 5,000 characters.');
+      const lines = source.split(/\r?\n/);
+      const environment = Object.create(null);
+      const output = [];
+      let executed = 0;
+      const meaningful = line => line.trim() && !line.trim().startsWith('#');
+      const indentOf = line => line.length - line.trimStart().length;
+      const expressionValue = expression => {
+        const literal = expression.trim().match(/^(["'])(.*)\1$/);
+        return literal ? literal[2] : formatNumber(evaluateScientificExpression(expression, angleMode, environment));
+      };
+      const runBlock = (start, end, indent, depth) => {
+        if (depth > 4) throw new Error('Nested loops are limited to four levels.');
+        let index = start;
+        while (index < end) {
+          const line = lines[index];
+          if (!meaningful(line)) { index += 1; continue; }
+          const currentIndent = indentOf(line);
+          if (currentIndent < indent) return index;
+          if (currentIndent > indent) throw new Error(`Unexpected indentation on line ${index + 1}.`);
+          executed += 1;
+          if (executed > 1000) throw new Error('Execution stopped after 1,000 statements.');
+          const statement = line.trim();
+          const loop = statement.match(/^for\s+([a-zA-Z_]\w*)\s+in\s+range\(([^()]*)\):$/);
+          if (loop) {
+            const args = loop[2].split(',').map(part => part.trim());
+            if (args.length < 1 || args.length > 3 || args.some(part => !part)) throw new Error(`Invalid range() on line ${index + 1}.`);
+            const values = args.map(part => evaluateScientificExpression(part, angleMode, environment));
+            const begin = values.length === 1 ? 0 : values[0];
+            const stop = values.length === 1 ? values[0] : values[1];
+            const step = values.length === 3 ? values[2] : 1;
+            if (![begin, stop, step].every(Number.isInteger) || step === 0) throw new Error('range() requires integer values and a non-zero step.');
+            const bodyStart = index + 1;
+            let bodyEnd = bodyStart;
+            while (bodyEnd < end && (!meaningful(lines[bodyEnd]) || indentOf(lines[bodyEnd]) > currentIndent)) bodyEnd += 1;
+            const firstBody = lines.slice(bodyStart, bodyEnd).find(meaningful);
+            if (!firstBody) throw new Error(`The for-loop on line ${index + 1} needs an indented body.`);
+            const bodyIndent = indentOf(firstBody);
+            const iterations = Math.ceil(Math.max(0, (stop - begin) / step));
+            if (iterations > 1000) throw new Error('range() is limited to 1,000 iterations.');
+            for (let value = begin; step > 0 ? value < stop : value > stop; value += step) {
+              environment[loop[1]] = value;
+              runBlock(bodyStart, bodyEnd, bodyIndent, depth + 1);
+            }
+            index = bodyEnd;
+            continue;
+          }
+          const print = statement.match(/^print\((.*)\)$/);
+          if (print) {
+            if (output.length >= 200) throw new Error('Output is limited to 200 lines.');
+            output.push(expressionValue(print[1]));
+            index += 1;
+            continue;
+          }
+          const assignment = statement.match(/^([a-zA-Z_]\w*)\s*=\s*(.+)$/);
+          if (assignment) {
+            if (['pi', 'e', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'sqrt', 'abs', 'ln', 'log'].includes(assignment[1].toLowerCase())) throw new Error(`Cannot assign to reserved name "${assignment[1]}".`);
+            environment[assignment[1]] = evaluateScientificExpression(assignment[2], angleMode, environment);
+            index += 1;
+            continue;
+          }
+          throw new Error(`Unsupported statement on line ${index + 1}.`);
+        }
+        return index;
+      };
+      const first = lines.find(meaningful);
+      if (first && indentOf(first) !== 0) throw new Error('Top-level statements must not be indented.');
+      if (first) runBlock(lines.indexOf(first), lines.length, 0, 0);
+      return output;
+    };
+    node.querySelector('.python-run').addEventListener('click', () => {
+      try {
+        const output = runPythonSubset(pythonEditor.value);
+        pythonOutput.textContent = output.length ? output.join('\n') : 'Program finished with no output.';
+      } catch (error) { pythonOutput.textContent = `Error: ${error.message}`; }
+    });
+    node.querySelector('.python-clear').addEventListener('click', () => { pythonOutput.textContent = ''; });
+    node.querySelectorAll('.science-mode-tabs button').forEach(button => button.addEventListener('click', () => showMode(button.dataset.mode)));
     const press = (key) => {
       if (replaceAfterResult && (/^\d$/.test(key) || key === '.')) {
         value = '';
@@ -342,6 +807,7 @@
       if (key === 'DEG' || key === 'RAD') {
         angleMode = angleMode === 'DEG' ? 'RAD' : 'DEG';
         angleButton.textContent = angleMode;
+        answerMode.textContent = `${angleMode} · ${fractionMode ? 'FRACTION' : 'DECIMAL'}`;
         return;
       }
       if (key === '=') {
@@ -361,8 +827,7 @@
         }
         return;
       }
-      if (key === 'x²') value += '^2';
-      else if (key === 'sqrt' || ['sin','cos','tan','asin','acos','atan','ln','log','abs'].includes(key)) {
+      if (key === 'sqrt' || ['sin','cos','tan','asin','acos','atan','ln','log','abs'].includes(key)) {
         const hasOperand = /(?:\d|π|e|\)|!|%)$/.test(value);
         value = hasOperand ? `${key}(${value})` : `${value}${key}(`;
       }
@@ -386,8 +851,12 @@
       history.length = 0;
       renderHistory();
     });
-    node.addEventListener('pointerdown', () => node.focus({ preventScroll: true }));
+    node.addEventListener('pointerdown', event => {
+      if (!event.target.closest('button,input,textarea,select')) node.focus({ preventScroll: true });
+    });
     node.addEventListener('keydown', (event) => {
+      if (activeMode !== 'calculate' || event.target.matches('input,textarea,select')) return;
+      if (event.target.matches('button') && ['Enter', ' ', 'Spacebar'].includes(event.key)) return;
       if (event.ctrlKey || event.metaKey || event.altKey) return;
       const key = event.key;
       if (/^\d$/.test(key) || ['.','(',')','+','-','*','/','^','%','!'].includes(key)) {
@@ -454,6 +923,7 @@
       });
       content.append(grid);
     };
+    explorerRenderCurrent = render;
     back.addEventListener('click', () => { if (explorerPath.length > 1) { explorerPath.pop(); explorerSelectedFile = null; render(); } });
     render();
     return node;
@@ -500,7 +970,25 @@
       customAccent.querySelector('button').classList.add('selected');
     });
     layout.append(customAccent);
-    layout.append(group('Wallpaper', 'Set the mood for your workspace.', [{key:'wallpaper',value:'nexus',label:'Nexus'},{key:'wallpaper',value:'aurora',label:'Aurora'},{key:'wallpaper',value:'dusk',label:'Dusk'},{key:'wallpaper',value:'midnight',label:'Midnight'},{key:'wallpaper',value:'ocean',label:'Ocean'},{key:'wallpaper',value:'ember',label:'Ember'},{key:'wallpaper',value:'nebula',label:'Nebula'},{key:'wallpaper',value:'glacier',label:'Glacier'},{key:'wallpaper',value:'prism',label:'Prism'},{key:'wallpaper',value:'solar',label:'Solar'}]));
+    const wallpaperChoices = [{key:'wallpaper',value:'nexus',label:'Nexus'},{key:'wallpaper',value:'aurora',label:'Aurora'},{key:'wallpaper',value:'dusk',label:'Dusk'},{key:'wallpaper',value:'midnight',label:'Midnight'},{key:'wallpaper',value:'ocean',label:'Ocean'},{key:'wallpaper',value:'ember',label:'Ember'},{key:'wallpaper',value:'nebula',label:'Nebula'},{key:'wallpaper',value:'glacier',label:'Glacier'},{key:'wallpaper',value:'prism',label:'Prism'},{key:'wallpaper',value:'solar',label:'Solar'}];
+    window.NexusWallpaper?.getOptions().forEach(item => wallpaperChoices.push({ key:'wallpaper', value:item.id, label:item.name }));
+    layout.append(group('Wallpaper', 'Set a built-in, animated, or locally imported wallpaper.', wallpaperChoices));
+    const wallpaperImport = document.createElement('section');
+    wallpaperImport.className = 'settings-group';
+    wallpaperImport.innerHTML = '<h3>Import a wallpaper</h3><p>Choose an image or short video stored on this device. Files are limited to 2 MB; nothing is uploaded.</p><label class="profile-photo-picker">Choose image or video<input class="wallpaper-file-input" type="file" accept="image/*,video/*"></label>';
+    wallpaperImport.querySelector('input').addEventListener('change', async event => {
+      try {
+        const imported = await window.NexusWallpaper.importFile(event.target.files?.[0]);
+        currentSettings.wallpaper = `custom:${imported.id}`;
+        saveSettings();
+        window.Nexus.toast('Wallpaper imported and applied locally.');
+      } catch (error) {
+        window.Nexus.toast(error.message);
+      } finally {
+        event.target.value = '';
+      }
+    });
+    layout.append(wallpaperImport);
     layout.append(group('Appearance', 'Select your preferred desktop appearance.', [{key:'theme',value:'dark',label:'Dark'},{key:'theme',value:'light',label:'Light'}]));
     const profile = document.createElement('section');
     profile.className = 'settings-group';
@@ -635,6 +1123,7 @@
       notes.forEach(note => {
         const button = document.createElement('button');
         button.className = `note-list-item ${note.id === activeNoteId ? 'active' : ''}`;
+        button.dataset.noteId = note.id;
         button.innerHTML = '<strong></strong><span></span>';
         button.querySelector('strong').textContent = note.title || 'Untitled note';
         button.querySelector('span').textContent = note.body?.split('\n')[0] || 'No additional text';
@@ -683,6 +1172,7 @@
   }
   const makers = {
     terminal: createTerminal, calculator: createCalculator, explorer: createExplorer, settings: createSettings, notes: createNotes, about: createAbout,
+    store: () => window.NexusStore.create(), widgets: () => window.NexusWidgets.createManager(), recovery: () => window.NexusRecovery.create(),
     music: () => window.NexusMusic.create(), browser: () => window.NexusBrowser.create(), monitor: () => window.NexusMonitor.create(),
     games: () => window.NexusGames.create(), calendar: () => window.NexusCalendar.create(),
     gallery: () => window.NexusGallery.create(), paint: () => window.NexusPaint.create(),
@@ -690,16 +1180,22 @@
     password: () => window.NexusPassword.create(), tasks: () => window.NexusTasks.create(), recycle: () => window.NexusRecycle.create()
   };
   const windowSizes = {
-    terminal:{width:580,height:390},     calculator:{width:760,height:740}, explorer:{width:590,height:410}, settings:{width:570,height:680},
+    terminal:{width:580,height:390},         calculator:{width:900,height:740}, explorer:{width:590,height:410}, settings:{width:570,height:680},
     notes:{width:590,height:420}, about:{width:410,height:410}, music:{width:700,height:540}, browser:{width:850,height:620},
     monitor:{width:650,height:550}, games:{width:570,height:590}, calendar:{width:650,height:650},
     gallery:{width:820,height:620}, paint:{width:820,height:650}, time:{width:460,height:500}, worldclock:{width:560,height:620},
-    password:{width:470,height:570}, tasks:{width:650,height:620}, recycle:{width:620,height:520}
+    password:{width:470,height:570}, tasks:{width:650,height:620}, recycle:{width:620,height:520},
+    store:{width:900,height:700}, widgets:{width:620,height:600}, recovery:{width:700,height:680}
   };
   function open(id) {
     const app = apps.find(item => item.id === id);
     const make = makers[id];
     if (!app || !make) return;
+    const state = window.NexusStorage.getAppRegistry()[id];
+    if (!state?.installed || !state.enabled) {
+      window.Nexus?.toast(`${app.name} is not installed or is disabled. Manage it in NEXUS Store.`);
+      return;
+    }
     window.NexusSystem?.playSound('open');
     currentSettings.recentApps = [id, ...(currentSettings.recentApps || []).filter(item => item !== id)].slice(0, 8);
     window.NexusStorage.saveSettings(currentSettings);
@@ -708,7 +1204,7 @@
       updateRecentApps();
       return;
     }
-    if (id === 'explorer') { explorerPath = ['Home']; explorerSelectedFile = null; }
+    if (id === 'explorer' && !preserveExplorerSearch) { explorerPath = ['Home']; explorerSelectedFile = null; }
     if (id === 'notes') { notes = window.NexusStorage.getNotes(); activeNoteId = notes[0]?.id || null; }
     if (id === 'recycle') notes = window.NexusStorage.getNotes();
     window.NexusWindows.open(app.id, app.name, app.icon, make(), { size: windowSizes[id] });
@@ -745,6 +1241,8 @@
     [desktop,pinned,launcher,recents].forEach(element => element.replaceChildren());
     const configuredPins = currentSettings.taskbarApps;
     const pinnedApps = Array.isArray(configuredPins) ? configuredPins : ['terminal','explorer','calculator','notes','settings','browser'];
+    const registry = window.NexusStorage.getAppRegistry();
+    const availableApps = apps.filter(app => registry[app.id]?.installed && registry[app.id]?.enabled);
     const makeLauncherButton = app => {
       const launchButton = document.createElement('button');
       launchButton.className = 'launcher-item'; launchButton.dataset.appName = `${app.name} ${app.description}`.toLowerCase();
@@ -753,13 +1251,13 @@
       launchButton.addEventListener('click', () => { open(app.id); window.Nexus.closeLauncher(); });
       return launchButton;
     };
-    const recentIds = (currentSettings.recentApps || []).filter(id => apps.some(app => app.id === id)).slice(0, 4);
+    const recentIds = (currentSettings.recentApps || []).filter(id => availableApps.some(app => app.id === id)).slice(0, 4);
     document.getElementById('launcher-recent-section').hidden = recentIds.length === 0;
     recentIds.forEach(id => {
       const app = apps.find(item => item.id === id);
       if (app) recents.append(makeLauncherButton(app));
     });
-    apps.forEach(app => {
+    availableApps.forEach(app => {
       const desktopButton = document.createElement('button');
       desktopButton.className = 'desktop-icon'; desktopButton.setAttribute('aria-label',`Open ${app.name}`);
       desktopButton.draggable = true;
@@ -791,8 +1289,44 @@
       launcher.append(makeLauncherButton(app));
     });
   }
+  function openSearchResult(action) {
+    if (!action || typeof action !== 'object') return;
+    if (action.app === 'notes' && typeof action.id === 'string') {
+      notes = window.NexusStorage.getNotes();
+      activeNoteId = action.id;
+      open('notes');
+      document.querySelector(`[data-window-id="notes"] [data-note-id="${CSS.escape(action.id)}"]`)?.click();
+    } else if (action.app === 'explorer' && typeof action.file === 'string') {
+      const file = (fileSystem[action.path] || []).find(item => item.name === action.file && item.type === 'file');
+      if (!file) return;
+      explorerPath = [action.path];
+      explorerSelectedFile = file;
+      preserveExplorerSearch = true;
+      open('explorer');
+      preserveExplorerSearch = false;
+      explorerRenderCurrent?.();
+    } else if (action.app) {
+      open(action.app);
+    }
+  }
+  function refreshAfterRestore() {
+    currentSettings = window.NexusStorage.getSettings();
+    notes = window.NexusStorage.getNotes();
+    activeNoteId = notes[0]?.id || null;
+    applySettings();
+    renderShortcuts();
+    if (window.NexusWindows.has('notes')) window.dispatchEvent(new CustomEvent('nexus-notes-change'));
+  }
+  window.addEventListener('nexus-app-registry-change', renderShortcuts);
   window.NexusApps = {
     open, renderShortcuts, onClose, applySettings,
+    openSearchResult, refreshAfterRestore,
+    getCatalog: () => apps.map(app => ({ ...app })),
+    getSearchIndex: () => [
+      ...apps.map(app => ({ type: 'Application', title: app.name, detail: app.description, action: { app: app.id } })),
+      ...notes.map(note => ({ type: 'Note', title: note.title || 'Untitled note', detail: (note.body || '').slice(0, 160), action: { app: 'notes', id: note.id } })),
+      ...Object.entries(fileSystem).flatMap(([folder, items]) => items.filter(item => item.type === 'file').map(item => ({ type: 'Document', title: item.name, detail: folder, action: { app: 'explorer', path: folder, file: item.name } })))
+    ],
     getSettings: () => ({ ...currentSettings }),
     getSetting: key => currentSettings[key],
     updateSetting: setSetting

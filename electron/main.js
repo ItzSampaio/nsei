@@ -181,9 +181,16 @@ app.whenReady().then(() => {
 
   ipcMain.handle('nexus:get-app-info', () => ({
     name: 'NEXUS OS',
-    version: '4.0.0',
+    version: '6.0.0',
     platform: process.platform
   }));
+
+  ipcMain.handle('nexus:get-browser-bookmarks', (event) => {
+    if (!/^file:\/\/.+\/index\.html(?:[?#].*)?$/i.test(event.senderFrame.url)) {
+      throw new Error('Only NEXUS OS may read browser bookmarks.');
+    }
+    return browserManager?.getBookmarks?.() || [];
+  });
 
   ipcMain.handle('nexus:notify', async (event, payload) => {
     if (!/^file:\/\/.+\/index\.html(?:[?#].*)?$/i.test(event.senderFrame.url)) {

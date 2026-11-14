@@ -25,6 +25,7 @@
     window.setTimeout(() => { element.classList.add('leaving'); window.setTimeout(() => element.remove(), 300); }, 2800);
   }
   window.Nexus = { toast, closeLauncher: () => toggleLauncher(false), toggleLauncher };
+  window.NexusWidgets?.init();
   window.NexusApps.renderShortcuts();
   window.NexusSystem.init();
   updateClock();
@@ -33,6 +34,15 @@
   document.getElementById('taskbar-launcher').addEventListener('click', () => toggleLauncher());
   document.getElementById('launcher-close').addEventListener('click', () => toggleLauncher(false));
   search.addEventListener('input', () => filterApps(search.value));
+  const snapButton = document.getElementById('snap-layouts-button');
+  const snapMenu = document.getElementById('snap-layouts-menu');
+  snapButton?.addEventListener('click', event => {
+    event.stopPropagation();
+    if (snapMenu) snapMenu.hidden = !snapMenu.hidden;
+  });
+  document.addEventListener('pointerdown', event => {
+    if (snapMenu && !event.target.closest('.snap-layout-control')) snapMenu.hidden = true;
+  });
   document.addEventListener('pointerdown', event => {
     if (!launcher.hidden && !launcher.contains(event.target) && !event.target.closest('#launcher-button, #taskbar-launcher')) toggleLauncher(false);
   });

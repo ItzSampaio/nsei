@@ -6,10 +6,15 @@
   const TASKS_KEY = 'nexus-os-tasks-v1';
   const RECYCLE_KEY = 'nexus-os-recycle-v1';
   const NOTIFICATIONS_KEY = 'nexus-os-notifications-v1';
+  const APP_REGISTRY_KEY = 'nexus-os-app-registry-v1';
+  const WIDGETS_KEY = 'nexus-os-widgets-v1';
+  const LAYOUTS_KEY = 'nexus-os-layouts-v1';
+  const WALLPAPERS_KEY = 'nexus-os-custom-wallpapers-v1';
+  const appIds = ['terminal','explorer','calculator','notes','settings','about','music','browser','monitor','games','calendar','gallery','paint','time','worldclock','password','tasks','recycle','store','recovery','widgets'];
   const defaults = {
     accent: 'violet', wallpaper: 'nexus', theme: 'dark', username: 'Guest',
     avatar: '👩‍🚀', bootAnimation: true, startupSound: false, showIcons: true,
-    volume: 70, pin: '', customAccent: '#9c7cff', iconPositions: {},
+    volume: 70, pin: '', customAccent: '#9c7cff', iconPositions: {}, widgetQuickNote: '',
     taskbarPosition: 'bottom', animations: true, taskbarApps: null, recentApps: [],
     muted: false, profileImage: ''
   };
@@ -96,6 +101,72 @@
       return Array.isArray(saved) ? saved.filter(item => item && typeof item.title === 'string').slice(-80) : [];
     },
     saveNotifications(items) { return write(NOTIFICATIONS_KEY, items.slice(-80)); },
+    getAppRegistry() {
+      const saved = read(APP_REGISTRY_KEY, {});
+      const registry = {};
+      appIds.forEach(id => {
+        const state = saved && typeof saved === 'object' ? saved[id] : null;
+        registry[id] = {
+          installed: typeof state?.installed === 'boolean' ? state.installed : true,
+          enabled: typeof state?.enabled === 'boolean' ? state.enabled : true,
+          version: typeof state?.version === 'string' ? state.version.slice(0, 24) : '1.0.0'
+        };
+      });
+      return registry;
+    },
+    saveAppRegistry(registry) { return write(APP_REGISTRY_KEY, registry); },
+    getWidgets() {
+      const saved = read(WIDGETS_KEY, []);
+      return Array.isArray(saved) ? saved.filter(item => item && typeof item.id === 'string' && typeof item.type === 'string').slice(0, 24) : [];
+    },
+    saveWidgets(items) { return write(WIDGETS_KEY, items.slice(0, 24)); },
+    getLayouts() {
+      const saved = read(LAYOUTS_KEY, []);
+      return Array.isArray(saved) ? saved.filter(item => item && typeof item.name === 'string' && Array.isArray(item.windows)).slice(0, 20) : [];
+    },
+    saveLayouts(items) { return write(LAYOUTS_KEY, items.slice(0, 20)); },
+    getCustomWallpapers() {
+      const saved = read(WALLPAPERS_KEY, []);
+      return Array.isArray(saved) ? saved.filter(item => item && typeof item.id === 'string' && typeof item.data === 'string').slice(0, 8) : [];
+    },
+    saveCustomWallpapers(items) { return write(WALLPAPERS_KEY, items.slice(0, 8)); },
+    exportSnapshot() {
+      const settings = this.getSettings();
+      delete settings.pin;
+      delete settings.profileImage;
+      return {
+        format: 'nexus-os-backup',
+        version: 1,
+        createdAt: new Date().toISOString(),
+        categories: {
+          settings,
+          notes: this.getNotes(),
+          events: this.getEvents(),
+          tasks: this.getTasks(),
+          recycle: this.getRecycleBin(),
+          notifications: this.getNotifications(),
+          apps: this.getAppRegistry(),
+          widgets: this.getWidgets(),
+          layouts: this.getLayouts(),
+          wallpapers: this.getCustomWallpapers()
+        }
+      };
+    },
+    restoreSnapshot(categories) {
+      const keyMap = {
+        settings: SETTINGS_KEY, notes: NOTES_KEY, events: EVENTS_KEY, tasks: TASKS_KEY,
+        recycle: RECYCLE_KEY, notifications: NOTIFICATIONS_KEY, apps: APP_REGISTRY_KEY,
+        widgets: WIDGETS_KEY, layouts: LAYOUTS_KEY, wallpapers: WALLPAPERS_KEY
+      };
+      if (!categories || typeof categories !== 'object' || Array.isArray(categories)) throw new Error('Backup categories are invalid.');
+      Object.entries(keyMap).forEach(([name, key]) => {
+        if (Object.prototype.hasOwnProperty.call(categories, name)) {
+          if (!write(key, categories[name])) throw new Error(`Could not restore ${name}; browser storage may be full.`);
+        }
+      });
+      window.dispatchEvent(new CustomEvent('nexus-data-restored'));
+      return true;
+    },
     getGalleryPhotos() { return galleryRequest('readonly', store => store.getAll()); },
     saveGalleryPhoto(photo) { return galleryRequest('readwrite', store => store.put(photo)); },
     deleteGalleryPhoto(id) { return galleryRequest('readwrite', store => store.delete(id)); }

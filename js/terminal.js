@@ -38,13 +38,13 @@
         '  neofetch  Show system information',
         '  clear     Clear the terminal'
       ].join('\n')),
-      about: () => line('NEXUS OS 3.0.0 (ULTIMATE EDITION)\nA browser-based desktop environment built with HTML, CSS, and vanilla JavaScript.', 'success'),
+      about: () => line('NEXUS OS 6.0.0 (ULTIMATE EDITION)\nA browser-based desktop environment built with HTML, CSS, and vanilla JavaScript.', 'success'),
       date: () => line(new Date().toString()),
       whoami: () => line(currentUser()),
       neofetch: () => line([
         `       .---.       ${currentUser()}@nexus`,
         '      /     \\      ----------------',
-        '     |  N X  |     OS: NEXUS OS 3.0.0',
+        '     |  N X  |     OS: NEXUS OS 6.0.0',
         '      \\     /      Browser: ' + navigator.userAgent.split(') ')[0].split(' (')[0],
         '       `---`       Shell: NEXUS Terminal',
         '                    Theme: ' + (window.NexusStorage.getSettings().theme || 'dark')

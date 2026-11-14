@@ -308,7 +308,7 @@
       const app = shortcuts[event.key.toUpperCase()];
       if (app) { event.preventDefault(); window.NexusApps.open(app); }
     });
-    notify('NEXUS OS 3.0 is ready', 'Your upgraded desktop is ready to explore.');
+    notify('NEXUS OS 6.0 is ready', 'Your upgraded desktop is ready to explore.');
     start();
   }
   window.NexusSystem = {
