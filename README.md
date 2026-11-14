@@ -11,6 +11,20 @@ NEXUS OS is a polished desktop-style environment built with vanilla HTML, CSS, J
 - **Live Wallpapers** - built-in animated wallpapers and local image/video imports with reduced-motion support.
 - **NEXUS Recovery** - validated, versioned backups with selective restore and safety-backup export.
 
+## NEXUS Game Center
+
+The Games application is an integrated local game hub with searchable categories, favourites, recently played games, achievements, local leaderboards, and game settings. It currently includes 22 catalogue entries:
+
+**Arcade:** Neon Snake, Space Invaders, Brick Breaker, Maze Runner, Sky Jumper, Asteroids, Zombie Survival, and Pixel Quest.
+
+**Racing:** NEXUS Racing, Highway Rush, Hill Climb, Parking Master, Drift Legends, Rally Challenge, and City Driver.
+
+**Puzzle and strategy:** Chess, Minesweeper, 2048, Sudoku, Tower Defense, Tic-Tac-Toe, and Escape Room.
+
+Game progress is stored locally. Scores are explicitly local rankings, not online global leaderboards. The Game Center cleans up its active game loop when its desktop window closes.
+
+Keyboard controls are shown inside each game. Arcade and driving challenges use Arrow keys or WASD where applicable; `Space` is used for actions in canvas-based challenges. Mouse controls are available for board games and menus.
+
 ## Included applications
 
 Terminal, Calculator, File Explorer, Settings, Notes, About NEXUS, Music Player, Web Browser, System Monitor, Games, Calendar, Photo Gallery, Paint Studio, Stopwatch & Timer, World Clock, Password Generator, Task Manager, Recycle Bin, NEXUS Store, Desktop Widgets, and NEXUS Recovery.

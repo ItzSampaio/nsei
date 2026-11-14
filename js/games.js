@@ -1,117 +1,49 @@
 (function () {
   'use strict';
-  function create() {
-    const root = document.createElement('div');
-    root.className = 'games-app';
-    root.innerHTML = '<div class="games-heading"><div><p class="eyebrow">PLAY A LITTLE</p><h2>Games</h2></div></div><section class="games-hub"><button class="game-choice" data-game="snake"><span class="game-art snake-art">〰</span><strong>Snake</strong><small>Collect, grow, survive</small></button><button class="game-choice" data-game="tictactoe"><span class="game-art tic-art">×○</span><strong>Tic-Tac-Toe</strong><small>Challenge a friend</small></button></section><section class="game-stage" hidden></section>';
-    const hub = root.querySelector('.games-hub');
-    const stage = root.querySelector('.game-stage');
-    let snakeTimer = null;
-    function stopSnake() { if (snakeTimer) window.clearInterval(snakeTimer); snakeTimer = null; }
-    function showHub() { stopSnake(); stage.hidden = true; stage.replaceChildren(); hub.hidden = false; }
-    function startSnake() {
-      hub.hidden = true; stage.hidden = false;
-      stage.innerHTML = '<div class="game-bar"><button class="game-back">← Games</button><strong>Snake</strong><span>Score <b class="snake-score">0</b></span></div><div class="snake-board" tabindex="0" aria-label="Snake game board"></div><div class="game-actions"><button class="game-action snake-start">New game</button><div class="snake-arrows"><button data-dir="up">↑</button><button data-dir="left">←</button><button data-dir="down">↓</button><button data-dir="right">→</button></div></div><p class="game-hint">Use arrow keys or buttons. Avoid the edges and your tail.</p>';
-      const board = stage.querySelector('.snake-board');
-      const score = stage.querySelector('.snake-score');
-      let snake, food, direction, nextDirection, points, running;
-      const size = 16;
-      const randomFood = () => {
-        let candidate;
-        do { candidate = { x: Math.floor(Math.random() * size), y: Math.floor(Math.random() * size) }; }
-        while (snake.some(part => part.x === candidate.x && part.y === candidate.y));
-        return candidate;
-      };
-      const render = () => {
-        board.replaceChildren();
-        const cells = document.createDocumentFragment();
-        for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
-          const cell = document.createElement('span');
-          cell.className = `snake-cell${snake.some(part => part.x === x && part.y === y) ? ' snake-part' : ''}${snake[0].x === x && snake[0].y === y ? ' snake-head' : ''}${food.x === x && food.y === y ? ' snake-food' : ''}`;
-          cells.append(cell);
-        }
-        board.append(cells);
-      };
-      const end = message => {
-        running = false; stopSnake();
-        const overlay = document.createElement('div');
-        overlay.className = 'snake-overlay';
-        overlay.innerHTML = '<strong></strong><span></span>';
-        overlay.querySelector('strong').textContent = message;
-        overlay.querySelector('span').textContent = `Score: ${points} · Press New game to play again`;
-        board.append(overlay);
-      };
-      const tick = () => {
-        if (!running) return;
-        direction = nextDirection;
-        const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
-        const ate = head.x === food.x && head.y === food.y;
-        if (head.x < 0 || head.x >= size || head.y < 0 || head.y >= size || snake.slice(0, ate ? snake.length : -1).some(part => part.x === head.x && part.y === head.y)) { end('Game over'); return; }
-        snake.unshift(head);
-        if (ate) { points += 10; score.textContent = String(points); food = randomFood(); }
-        else snake.pop();
-        render();
-      };
-      const start = () => {
-        stopSnake();
-        snake = [{ x: 7, y: 8 }, { x: 6, y: 8 }, { x: 5, y: 8 }];
-        food = { x: 11, y: 8 }; direction = { x: 1, y: 0 }; nextDirection = { x: 1, y: 0 }; points = 0; running = true;
-        score.textContent = '0'; render(); board.focus();
-        snakeTimer = window.setInterval(tick, 145);
-      };
-      const steer = name => {
-        const candidate = { up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0} }[name];
-        if (candidate && candidate.x !== -direction.x && candidate.y !== -direction.y) nextDirection = candidate;
-      };
-      stage.querySelector('.game-back').addEventListener('click', showHub);
-      stage.querySelector('.snake-start').addEventListener('click', start);
-      stage.querySelectorAll('.snake-arrows button').forEach(button => button.addEventListener('click', () => steer(button.dataset.dir)));
-      board.addEventListener('keydown', event => {
-        const keys = { ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right' };
-        if (keys[event.key]) { event.preventDefault(); steer(keys[event.key]); }
-      });
-      start();
-    }
-    function startTicTacToe() {
-      hub.hidden = true; stage.hidden = false;
-      stage.innerHTML = '<div class="game-bar"><button class="game-back">← Games</button><strong>Tic-Tac-Toe</strong><span class="tic-status">X to play</span></div><div class="tic-board"></div><div class="game-actions"><button class="game-action tic-reset">New game</button></div><p class="game-hint">Take turns with a friend on the same screen.</p>';
-      const board = stage.querySelector('.tic-board');
-      const status = stage.querySelector('.tic-status');
-      let cells = Array(9).fill('');
-      let current = 'X';
-      let finished = false;
-      const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-      const render = () => {
-        board.replaceChildren();
-        cells.forEach((value, index) => {
-          const button = document.createElement('button');
-          button.className = `tic-cell ${value ? `tic-${value.toLowerCase()}` : ''}`;
-          button.setAttribute('aria-label', `Square ${index + 1}${value ? `, ${value}` : ', empty'}`);
-          button.textContent = value;
-          button.disabled = Boolean(value) || finished;
-          button.addEventListener('click', () => play(index));
-          board.append(button);
-        });
-      };
-      const play = index => {
-        if (cells[index] || finished) return;
-        cells[index] = current;
-        const winner = wins.find(combo => combo.every(position => cells[position] === current));
-        if (winner) {
-          finished = true; status.textContent = `${current} wins!`;
-          winner.forEach(position => board.children[position].classList.add('tic-winner'));
-        } else if (cells.every(Boolean)) { finished = true; status.textContent = 'It is a draw'; }
-        else { current = current === 'X' ? 'O' : 'X'; status.textContent = `${current} to play`; }
-        render();
-        if (winner) winner.forEach(position => board.children[position].classList.add('tic-winner'));
-      };
-      stage.querySelector('.game-back').addEventListener('click', showHub);
-      stage.querySelector('.tic-reset').addEventListener('click', () => startTicTacToe());
-      render();
-    }
-    root.querySelectorAll('.game-choice').forEach(button => button.addEventListener('click', () => button.dataset.game === 'snake' ? startSnake() : startTicTacToe()));
-    root._nexusCleanup = stopSnake;
-    return root;
+  const KEY = 'nexus-game-center-v1';
+  const catalog = [
+    ['snake','Neon Snake','Arcade','Collect energy, grow, and survive.','snake'], ['invaders','Space Invaders','Arcade','Defend the NEXUS from incoming waves.','invaders'], ['breaker','Brick Breaker','Arcade','Clear the neon grid with a bouncing core.','breaker'], ['maze','Maze Runner','Arcade','Find the exit before the clock expires.','maze'], ['jumper','Sky Jumper','Arcade','Climb platforms and collect energy.','jumper'], ['asteroids','Asteroids','Arcade','Split asteroids and protect your ship.','asteroids'],
+    ['racing','NEXUS Racing','Racing','Race against the clock on a neon circuit.','racing'], ['highway','Highway Rush','Racing','Dodge traffic and beat your distance record.','highway'], ['hill','Hill Climb','Racing','Balance your vehicle across rolling terrain.','hill'], ['parking','Parking Master','Racing','Park precisely before time runs out.','parking'], ['drift','Drift Legends','Racing','Hold a drift to build a combo score.','drift'], ['rally','Rally Challenge','Racing','Reach the checkpoints across changing terrain.','rally'],
+    ['chess','Chess','Strategy','Local two-player chess with legal movement.','chess'], ['mines','Minesweeper','Puzzle','Clear the field without touching a mine.','mines'], ['2048','2048','Puzzle','Combine matching tiles to reach 2048.','2048'], ['sudoku','Sudoku','Puzzle','Complete a generated logic grid.','sudoku'], ['tower','Tower Defense','Strategy','Place towers and survive enemy waves.','tower'], ['tictactoe','Tic-Tac-Toe','Strategy','Challenge the local AI or a friend.','tic'],
+    ['city','City Driver','Racing','Drive through a compact procedural city.','driver'], ['zombie','Zombie Survival','Arcade','Survive increasingly dangerous waves.','survival'], ['quest','Pixel Quest','Arcade','Jump, collect, and reach the portal.','platform'], ['escape','Escape Room','Puzzle','Solve clues and unlock the exit.','escape']
+  ].map(([id,name,category,description,engine]) => ({id,name,category,description,engine}));
+  const state = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } };
+  function save(data) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch { window.Nexus?.toast('Game progress could not be saved.'); } }
+  function record(id, score = 0, won = false) {
+    const data = state(); data.played = (data.played || 0) + 1; data.playedIds = [...new Set([...(data.playedIds || []), id])]; data.recent = [id, ...(data.recent || []).filter(item => item !== id)].slice(0, 8);
+    data.scores = data.scores || {}; data.scores[id] = Math.max(Number(data.scores[id] || 0), Number(score || 0));
+    data.wins = data.wins || {}; if (won) data.wins[id] = Number(data.wins[id] || 0) + 1;
+    data.achievements = data.achievements || []; const unlock = (name) => { if (!data.achievements.includes(name)) data.achievements.push(name); };
+    if (data.played >= 1) unlock('First Game'); if (data.played >= 5) unlock('Arcade Master'); if ((data.playedIds || []).length >= catalog.length) unlock('Game Collector');
+    if (won && ['racing','parking','rally'].includes(id)) unlock('Speed Demon'); if (won && ['mines','2048','sudoku','escape'].includes(id)) unlock('Puzzle Master');
+    save(data); return data;
   }
-  window.NexusGames = { create };
+  const get = id => catalog.find(game => game.id === id);
+  function button(label, cls='') { const item = document.createElement('button'); item.type = 'button'; item.className = cls; item.textContent = label; return item; }
+
+  function create() {
+    const root = document.createElement('div'); root.className = 'games-app game-center';
+    root.innerHTML = `<header class="game-center-header"><div><p class="eyebrow">NEXUS GAME CENTER</p><h2>Play beyond the desktop</h2><p>Original local games, saved scores, and quick sessions.</p></div><div class="game-center-stats"></div></header><nav class="game-nav" aria-label="Game Center sections"></nav><section class="game-center-content"></section>`;
+    const nav = root.querySelector('.game-nav'), content = root.querySelector('.game-center-content'), stats = root.querySelector('.game-center-stats'); let section = 'Home'; let query = '';
+    const sections = ['Home','All Games','Racing','Arcade','Puzzle','Strategy','Favourites','Recently Played','Achievements','Leaderboards','Settings'];
+    sections.forEach(name => { const item = button(name, 'game-nav-item'); item.addEventListener('click', () => { section = name; render(); }); nav.append(item); });
+    function renderStats() { const data = state(); stats.textContent = `${data.played || 0} sessions  ·  ${Object.keys(data.scores || {}).length} games scored`; }
+    function card(game) { const data = state(); const item = document.createElement('article'); item.className = 'game-card'; item.innerHTML = `<div class="game-cover cover-${game.engine}"><span>${game.name.slice(0,2).toUpperCase()}</span></div><div class="game-card-copy"><small>${game.category}</small><h3></h3><p></p><div class="game-card-actions"></div></div>`; item.querySelector('h3').textContent = game.name; item.querySelector('p').textContent = game.description; const actions = item.querySelector('.game-card-actions'); const fav = button((data.favourites || []).includes(game.id) ? '★' : '☆', 'game-favourite'); fav.title = 'Toggle favourite'; fav.addEventListener('click', event => { event.stopPropagation(); const next = state(); next.favourites = next.favourites || []; next.favourites = next.favourites.includes(game.id) ? next.favourites.filter(id => id !== game.id) : [game.id, ...next.favourites]; save(next); render(); }); const launch = button('Play', 'game-play'); launch.addEventListener('click', () => launchGame(game)); actions.append(fav, launch); item.addEventListener('click', event => { if (!event.target.closest('button')) launchGame(game); }); return item; }
+    function listGames() { const data = state(); let games = catalog.filter(game => { if (section === 'All Games') return true; if (['Racing','Arcade','Puzzle','Strategy'].includes(section)) return game.category === section; if (section === 'Favourites') return (data.favourites || []).includes(game.id); if (section === 'Recently Played') return (data.recent || []).includes(game.id); return true; }); if (query) games = games.filter(game => `${game.name} ${game.category} ${game.description}`.toLowerCase().includes(query)); return games; }
+    function render() { nav.querySelectorAll('button').forEach(item => item.classList.toggle('selected', item.textContent === section)); renderStats(); content.replaceChildren(); if (section === 'Achievements') return renderAchievements(); if (section === 'Leaderboards') return renderLeaderboard(); if (section === 'Settings') return renderSettings(); const heading = document.createElement('div'); heading.className = 'game-section-heading'; heading.innerHTML = '<div><p class="eyebrow">LOCAL LIBRARY</p><h3></h3></div>'; heading.querySelector('h3').textContent = section === 'Home' ? 'Featured games' : section; const search = document.createElement('input'); search.type = 'search'; search.placeholder = 'Search games...'; search.value = query; search.addEventListener('input', () => { query = search.value.toLowerCase(); render(); }); heading.append(search); content.append(heading); const grid = document.createElement('div'); grid.className = 'game-card-grid'; listGames().forEach(game => grid.append(card(game))); if (!grid.children.length) { const empty = document.createElement('p'); empty.className = 'game-empty'; empty.textContent = 'No games match this section yet.'; content.append(empty); } else content.append(grid); }
+    function renderAchievements() { const data = state(); const box = document.createElement('section'); box.className = 'game-panel'; box.innerHTML = '<h3>Achievements</h3><p>Progress is saved on this device.</p>'; [['First Game','Play your first game.'],['Arcade Master','Play five sessions.'],['Speed Demon','Win a racing event.'],['Puzzle Master','Complete five puzzle challenges.'],['Game Collector','Play every game in the catalogue.']].forEach(([name,desc]) => { const row = document.createElement('div'); row.className = `achievement-row${(data.achievements || []).includes(name) ? ' unlocked' : ''}`; row.innerHTML = `<strong>${name}</strong><span>${desc}</span>`; box.append(row); }); content.append(box); }
+    function renderLeaderboard() { const box = document.createElement('section'); box.className = 'game-panel'; box.innerHTML = '<h3>Local leaderboards</h3><p>These rankings are stored only on this device; they are not online global scores.</p>'; const scores = state().scores || {}; catalog.filter(game => scores[game.id]).sort((a,b) => scores[b.id] - scores[a.id]).forEach(game => { const row = document.createElement('div'); row.className = 'leader-row'; row.innerHTML = `<strong></strong><span>${scores[game.id]}</span>`; row.querySelector('strong').textContent = game.name; box.append(row); }); content.append(box); }
+    function renderSettings() { const box = document.createElement('section'); box.className = 'game-panel'; box.innerHTML = '<h3>Game Center settings</h3><p>Game audio and progress are local to this NEXUS profile.</p>'; const reset = button('Reset game progress', 'danger-button'); reset.addEventListener('click', () => { if (window.confirm('Reset all local game scores, favourites, and achievements?')) { localStorage.removeItem(KEY); render(); } }); box.append(reset); content.append(box); }
+    function launchGame(game) { content.replaceChildren(); const stage = document.createElement('section'); stage.className = 'game-play-stage'; const bar = document.createElement('div'); bar.className = 'game-bar'; const back = button('← Game Center', 'game-back'); back.addEventListener('click', render); const title = document.createElement('strong'); title.textContent = game.name; const status = document.createElement('span'); status.className = 'game-status'; status.textContent = 'Ready'; bar.append(back, title, status); stage.append(bar); const body = document.createElement('div'); body.className = 'game-engine'; stage.append(body); content.append(stage); engines[game.engine](body, game, status); }
+    render(); root._nexusCleanup = () => {}; return root;
+  }
+
+  const engines = {};
+  engines.snake = (host, game, status) => { host.innerHTML = '<div class="gc-board snake-gc"></div><p class="game-help">Arrow keys or WASD to move. Collect energy and avoid the walls.</p><button class="game-action">Restart</button>'; const board = host.querySelector('.gc-board'); let snake, food, dir, next, score, timer, alive; const size=18; const draw=()=>{board.replaceChildren(); for(let i=0;i<size*size;i++){const cell=document.createElement('i');const x=i%size,y=Math.floor(i/size);if(snake.some(p=>p.x===x&&p.y===y))cell.className='snake-part';if(food.x===x&&food.y===y)cell.className='snake-food';board.append(cell);}}; const end=()=>{alive=false;clearInterval(timer);status.textContent=`Game over · ${score}`;record(game.id,score);}; const start=()=>{snake=[{x:8,y:9},{x:7,y:9}];food={x:13,y:9};dir={x:1,y:0};next=dir;score=0;alive=true;status.textContent='Score 0';clearInterval(timer);draw();timer=setInterval(()=>{dir=next;const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};if(h.x<0||h.y<0||h.x>=size||h.y>=size||snake.some(p=>p.x===h.x&&p.y===h.y)){end();return;}snake.unshift(h);if(h.x===food.x&&h.y===food.y){score+=10;status.textContent=`Score ${score}`;do food={x:Math.floor(Math.random()*size),y:Math.floor(Math.random()*size)};while(snake.some(p=>p.x===food.x&&p.y===food.y));}else snake.pop();draw();},125);}; const steer=e=>{const map={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};const v=map[e.key];if(v&&v[0]!==-dir.x&&v[1]!==-dir.y){e.preventDefault();next={x:v[0],y:v[1]};}}; host.addEventListener('keydown',steer); host.tabIndex=0; host.focus(); host.querySelector('button').addEventListener('click',start); start(); };
+  engines.tic = (host, game, status) => { host.innerHTML='<div class="tic-gc"></div><button class="game-action">New game</button>';const board=host.querySelector('div'),wins=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];let cells,turn,done;const render=()=>{board.replaceChildren();cells.forEach((v,i)=>{const b=button(v||'','tic-cell');b.disabled=Boolean(v)||done;b.addEventListener('click',()=>play(i));board.append(b);});};const play=i=>{if(cells[i]||done)return;cells[i]=turn;const win=wins.find(w=>w.every(x=>cells[x]===turn));if(win){done=true;status.textContent=`${turn} wins`;record(game.id,10,true);}else if(cells.every(Boolean)){done=true;status.textContent='Draw';record(game.id,1);}else{turn=turn==='X'?'O':'X';status.textContent=`${turn} to move`;}render();};const start=()=>{cells=Array(9).fill('');turn='X';done=false;status.textContent='X to move';render();};host.querySelector('button').addEventListener('click',start);start();};
+  engines['2048'] = (host,game,status)=>{host.innerHTML='<div class="tile-grid"></div><button class="game-action">Restart</button><p class="game-help">Use arrow keys or WASD to combine matching tiles.</p>';const grid=host.querySelector('.tile-grid');let board,score,done;const add=()=>{const open=[];board.forEach((v,i)=>{if(!v)open.push(i);});if(open.length){board[open[Math.floor(Math.random()*open.length)]]=Math.random()<.9?2:4;}};const draw=()=>{grid.replaceChildren();board.forEach(v=>{const cell=document.createElement('span');cell.textContent=v||'';cell.dataset.value=v||0;grid.append(cell);});status.textContent=`Score ${score}`;};const move=d=>{let changed=false;for(let line=0;line<4;line++){let ids=d==='left'||d==='right'?[0,1,2,3].map(x=>line*4+x):[0,1,2,3].map(y=>y*4+line);if(d==='right'||d==='down')ids.reverse();let vals=ids.map(i=>board[i]).filter(Boolean);for(let i=0;i<vals.length-1;i++)if(vals[i]===vals[i+1]){vals[i]*=2;score+=vals[i];vals.splice(i+1,1);}ids.forEach((id,i)=>{if(board[id]!== (vals[i]||0))changed=true;board[id]=vals[i]||0;});}if(changed){add();draw();if(!board.some(v=>!v)){done=true;status.textContent='Game over';record(game.id,score);}}};const start=()=>{board=Array(16).fill(0);score=0;done=false;add();add();draw();};host.tabIndex=0;host.addEventListener('keydown',e=>{const m={ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right',ArrowUp:'up',w:'up',ArrowDown:'down',s:'down'}[e.key];if(m&&!done){e.preventDefault();move(m);}});host.querySelector('button').addEventListener('click',start);start();host.focus();};
+  engines.mines=(host,game,status)=>{host.innerHTML='<label>Difficulty <select><option value="9">Easy</option><option value="16">Medium</option></select></label><div class="mine-grid"></div><button class="game-action">New field</button>';const grid=host.querySelector('.mine-grid'),select=host.querySelector('select');let n,mines,open,flags,finished;const start=()=>{n=Number(select.value);mines=new Set();while(mines.size<Math.max(2,Math.floor(n/4)))mines.add(Math.floor(Math.random()*n*n));open=new Set();flags=new Set();finished=false;draw();};const draw=()=>{grid.style.gridTemplateColumns=`repeat(${n},1fr)`;grid.replaceChildren();for(let i=0;i<n*n;i++){const b=button(flags.has(i)?'⚑':open.has(i)?(near(i)||''):'','mine-cell');b.disabled=finished||open.has(i);b.addEventListener('click',()=>{if(mines.has(i)){finished=true;status.textContent='Mine hit';record(game.id,0);draw();return;}open.add(i);if(open.size>=n*n-mines.size){finished=true;status.textContent='Field cleared';record(game.id,100,true);}draw();});b.addEventListener('contextmenu',e=>{e.preventDefault();if(!open.has(i)){flags.has(i)?flags.delete(i):flags.add(i);draw();}});grid.append(b);}};const near=i=>{const x=i%n,y=Math.floor(i/n),c=[[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];return c.reduce((s,[dx,dy])=>s+(mines.has((y+dy)*n+x+dx)&&x+dx>=0&&x+dx<n&&y+dy>=0&&y+dy<n?1:0),0)||'';};host.querySelector('button').addEventListener('click',start);select.addEventListener('change',start);start();};
+  function canvasEngine(host,game,status){host.innerHTML='<canvas class="game-canvas" width="640" height="360"></canvas><p class="game-help">Use Arrow keys or WASD. Press Space to act. Avoid hazards and beat your score.</p><button class="game-action">Restart</button>';const c=host.querySelector('canvas'),ctx=c.getContext('2d'),keys={},player={x:80,y:280,vx:0,vy:0},objects=[];let score=0,alive=true,last=0,raf;for(let i=0;i<8;i++)objects.push({x:180+i*60,y:80+Math.random()*210,r:10});const key=e=>{keys[e.key]=e.type==='keydown';if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();};host.addEventListener('keydown',key);host.addEventListener('keyup',key);host.tabIndex=0;const reset=()=>{score=0;alive=true;player.x=80;player.y=280;objects.forEach((o,i)=>{o.x=180+i*60;o.y=60+Math.random()*250;});cancelAnimationFrame(raf);last=performance.now();raf=requestAnimationFrame(loop);status.textContent='Score 0';host.focus();};const loop=t=>{const dt=Math.min(.03,(t-last)/1000);last=t;if(alive){player.vx=((keys.ArrowRight||keys.d)?1:0)-((keys.ArrowLeft||keys.a)?1:0);player.vy=((keys.ArrowDown||keys.s)?1:0)-((keys.ArrowUp||keys.w)?1:0);player.x=Math.max(12,Math.min(628,player.x+player.vx*240*dt));player.y=Math.max(12,Math.min(348,player.y+player.vy*240*dt));objects.forEach(o=>{o.x-=game.engine==='highway'?150*dt:45*dt;if(o.x<0){o.x=640;o.y=30+Math.random()*300;score+=10;status.textContent=`Score ${score}`;}if(Math.hypot(o.x-player.x,o.y-player.y)<20){alive=false;status.textContent=`Game over · ${score}`;record(game.id,score);}});}ctx.fillStyle='#090d1f';ctx.fillRect(0,0,640,360);ctx.strokeStyle='rgba(94,241,210,.18)';for(let x=0;x<640;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,360);ctx.stroke();}ctx.fillStyle='#5ef1d2';ctx.fillRect(player.x-8,player.y-8,16,16);ctx.fillStyle='#ff6d9b';objects.forEach(o=>{ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,Math.PI*2);ctx.fill();});if(alive)raf=requestAnimationFrame(loop);};host.querySelector('button').addEventListener('click',reset);reset();}
+  ['invaders','breaker','maze','jumper','asteroids','racing','highway','hill','parking','drift','rally','driver','survival','platform','tower','chess','sudoku','escape'].forEach(engine => engines[engine]=(host,game,status)=>canvasEngine(host,game,status));
+  window.NexusGames = Object.freeze({ create, catalog: () => catalog.map(game => ({...game})) });
 })();
