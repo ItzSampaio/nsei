@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'">
+    <title>NEXUS Browser</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090b17;
+        --panel: #111426;
+        --panel-raised: #181c32;
+        --border: rgba(159, 169, 255, .18);
+        --text: #f1f3ff;
+        --muted: #9da5c4;
+        --accent: #9c7cff;
+        --accent-rgb: 156, 124, 255;
+        font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--bg); color: var(--text); }
+      body { display: flex; flex-direction: column; }
+      button, input { color: inherit; font: inherit; }
+      button { border: 0; cursor: pointer; }
+      button:disabled { opacity: .38; cursor: default; }
+      .browser-chrome { height: 139px; flex: 0 0 139px; position: relative; z-index: 4; background: linear-gradient(135deg, #121528, #0d1020 70%); border-bottom: 1px solid var(--border); box-shadow: 0 8px 26px rgba(0,0,0,.24); }
+      .tabs-row { height: 42px; display: flex; align-items: flex-end; gap: 5px; padding: 5px 10px 0; background: rgba(4,6,14,.36); }
+      .tab-list { min-width: 0; height: 100%; display: flex; align-items: flex-end; gap: 5px; overflow: auto hidden; flex: 1; scrollbar-width: thin; }
+      .tab { height: 34px; min-width: 130px; max-width: 230px; padding: 0 9px 0 10px; display: flex; align-items: center; gap: 8px; border: 1px solid transparent; border-bottom: 0; border-radius: 9px 9px 0 0; color: var(--muted); background: rgba(255,255,255,.035); }
+      .tab.active { color: var(--text); background: #171a2c; border-color: var(--border); }
+      .tab-icon { width: 16px; height: 16px; flex: 0 0 16px; display: grid; place-items: center; color: var(--accent); font-size: 13px; }
+      .tab-icon img { width: 16px; height: 16px; border-radius: 3px; }
+      .tab-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-size: 11px; text-align: left; }
+      .tab-close { width: 22px; height: 22px; flex: 0 0 22px; display: grid; place-items: center; border-radius: 6px; color: var(--muted); background: transparent; font-size: 17px; }
+      .tab-close:hover { color: white; background: rgba(255,255,255,.13); }
+      .new-tab { width: 29px; height: 29px; flex: 0 0 29px; border-radius: 8px; color: var(--muted); background: transparent; font-size: 20px; }
+      .new-tab:hover, .tool-button:hover { color: white; background: rgba(255,255,255,.09); }
+      .toolbar { height: 56px; padding: 7px 12px; display: flex; align-items: center; gap: 6px; }
+      .tool-button { width: 35px; height: 35px; flex: 0 0 35px; border-radius: 10px; display: grid; place-items: center; color: #c2c7dc; background: transparent; font-size: 17px; }
+      .address-wrap { height: 38px; min-width: 100px; flex: 1; display: flex; align-items: center; gap: 9px; padding: 0 12px; border: 1px solid rgba(169,177,255,.19); border-radius: 12px; background: rgba(255,255,255,.045); transition: border-color .2s, box-shadow .2s; }
+      .address-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .13); }
+      .secure-indicator { color: #71d7b4; font-size: 12px; }
+      .secure-indicator.insecure { color: #f0bf75; }
+      #address { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 12px; }
+      #address::selection { background: var(--accent); }
+      .bookmark-toggle { color: #d3b8ff; font-size: 17px; }
+      .bookmarks-bar { height: 40px; padding: 0 12px; display: flex; align-items: center; gap: 7px; border-top: 1px solid rgba(255,255,255,.045); }
+      .bookmark-shortcuts { min-width: 0; display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; }
+      .bookmark-shortcut { max-width: 180px; padding: 5px 9px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: transparent; color: #bdc3dd; font-size: 10px; }
+      .bookmark-shortcut:hover { background: rgba(255,255,255,.08); color: white; }
+      .bar-action { padding: 6px 9px; border-radius: 8px; color: var(--muted); background: transparent; font-size: 10px; white-space: nowrap; }
+      .bar-action:hover, .bar-action.active { color: white; background: rgba(var(--accent-rgb),.2); }
+      .loading-line { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; opacity: 0; background: transparent; }
+      .loading-line.active { opacity: 1; }
+      .loading-line::after { content: ""; display: block; width: 36%; height: 100%; background: linear-gradient(90deg, transparent, var(--accent), #56cfff, transparent); animation: progress 1.1s ease-in-out infinite; }
+      @keyframes progress { from { transform: translateX(-120%); } to { transform: translateX(320%); } }
+      .content-panel { position: absolute; z-index: 5; top: 139px; inset-inline: 0; bottom: 0; overflow: auto; padding: 30px clamp(18px, 5vw, 64px); background: radial-gradient(ellipse at 70% 8%, rgba(var(--accent-rgb), .15), transparent 40%), linear-gradient(145deg, #0c1020, #090b17 60%); }
+      .panel-top { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+      .panel-top h1 { margin: 0; flex: 1; font-size: 22px; letter-spacing: -.3px; }
+      .panel-top p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+      .close-panel { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 10px; background: rgba(255,255,255,.04); }
+      .search-field { width: min(520px, 100%); height: 40px; padding: 0 13px; margin: 0 0 16px; border: 1px solid var(--border); border-radius: 12px; outline: 0; background: rgba(255,255,255,.04); }
+      .search-field:focus { border-color: var(--accent); }
+      .item-list { width: min(900px, 100%); display: grid; gap: 8px; }
+      .list-item { min-height: 58px; padding: 10px 12px; display: flex; align-items: center; gap: 11px; border: 1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,.035); }
+      .list-item-main { min-width: 0; flex: 1; }
+      .list-item-title, .list-item-url { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .list-item-title { font-size: 12px; font-weight: 600; }
+      .list-item-url, .list-item-meta { margin-top: 4px; color: var(--muted); font-size: 10px; }
+      .list-action { padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,.03); font-size: 10px; white-space: nowrap; }
+      .list-action:hover { border-color: var(--accent); }
+      .list-action.danger:hover { border-color: #ef788f; color: #ff9aac; }
+      .empty-state { padding: 32px 16px; border: 1px dashed var(--border); border-radius: 12px; color: var(--muted); text-align: center; font-size: 12px; }
+      .error-toast { position: absolute; z-index: 8; left: 50%; top: 151px; max-width: min(650px, calc(100% - 32px)); padding: 12px 15px; transform: translateX(-50%); border: 1px solid rgba(255,130,148,.38); border-radius: 12px; background: rgba(60,24,39,.96); color: #ffe3e8; font-size: 11px; box-shadow: 0 12px 38px rgba(0,0,0,.35); }
+      [hidden] { display: none !important; }
+      @media (max-width: 720px) {
+        .tab { min-width: 104px; }
+        .toolbar { gap: 3px; padding-inline: 7px; }
+        .tool-button { width: 31px; flex-basis: 31px; }
+        .bookmarks-bar { padding-inline: 7px; }
+        .bookmarks-bar .bar-action span { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <header id="browser-chrome" class="browser-chrome">
+      <div class="tabs-row">
+        <div id="tab-list" class="tab-list" role="tablist" aria-label="Browser tabs"></div>
+        <button id="new-tab" class="new-tab" type="button" aria-label="New tab" title="New tab (Ctrl+T)">+</button>
+      </div>
+      <div class="toolbar">
+        <button id="back" class="tool-button" type="button" aria-label="Back" title="Back (Alt+Left)">←</button>
+        <button id="forward" class="tool-button" type="button" aria-label="Forward" title="Forward (Alt+Right)">→</button>
+        <button id="reload" class="tool-button" type="button" aria-label="Reload" title="Reload">↻</button>
+        <button id="stop" class="tool-button" type="button" aria-label="Stop loading" title="Stop loading" hidden>×</button>
+        <button id="home" class="tool-button" type="button" aria-label="Home" title="Home">⌂</button>
+        <label class="address-wrap">
+          <span id="secure-indicator" class="secure-indicator">◆</span>
+          <input id="address" type="text" autocomplete="off" spellcheck="false" aria-label="Address or Google search" placeholder="Search Google or enter an address">
+        </label>
+        <button id="bookmark-toggle" class="tool-button bookmark-toggle" type="button" aria-label="Bookmark this page" title="Add or remove bookmark">☆</button>
+        <button id="open-external" class="tool-button" type="button" aria-label="Open in default browser" title="Open in your default browser">↗</button>
+      </div>
+      <div class="bookmarks-bar">
+        <div id="bookmark-shortcuts" class="bookmark-shortcuts"></div>
+        <button class="bar-action" data-panel="bookmarks" type="button" title="Manage bookmarks">★ <span>Bookmarks</span></button>
+        <button class="bar-action" data-panel="history" type="button" title="Browsing history">◷ <span>History</span></button>
+        <button class="bar-action" data-panel="downloads" type="button" title="Downloads">↓ <span>Downloads</span></button>
+      </div>
+      <div id="loading-line" class="loading-line"></div>
+    </header>
+    <section id="content-panel" class="content-panel" hidden></section>
+    <div id="error-toast" class="error-toast" hidden></div>
+
+    <script>
+      const api = window.nexusDesktop.browser;
+      const tabsElement = document.getElementById('tab-list');
+      const address = document.getElementById('address');
+      const chrome = document.getElementById('browser-chrome');
+      const panel = document.getElementById('content-panel');
+      const errorToast = document.getElementById('error-toast');
+      const tabs = new Map();
+      let activeTabId = null;
+      let bookmarks = [];
+      let activePanel = '';
+      let errorTimer;
+      let historySearchGeneration = 0;
+
+      const activeTab = () => tabs.get(activeTabId);
+      const setBusy = (busy) => {
+        document.getElementById('loading-line').classList.toggle('active', busy);
+        document.getElementById('reload').hidden = busy;
+        document.getElementById('stop').hidden = !busy;
+      };
+      const formatSize = (value) => {
+        if (!value) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const unit = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+        return `${(value / Math.pow(1024, unit)).toFixed(unit ? 1 : 0)} ${units[unit]}`;
+      };
+      const showError = (message) => {
+        errorToast.textContent = message;
+        errorToast.hidden = false;
+        clearTimeout(errorTimer);
+        errorTimer = setTimeout(() => { errorToast.hidden = true; }, 6500);
+      };
+      const activePage = () => {
+        const tab = activeTab();
+        if (!tab) return;
+        address.value = tab.url === 'about:blank' ? '' : tab.url;
+        document.getElementById('back').disabled = !tab.canGoBack;
+        document.getElementById('forward').disabled = !tab.canGoForward;
+        document.getElementById('bookmark-toggle').textContent =
+          bookmarks.some((item) => item.url === tab.url) ? '★' : '☆';
+        const secure = document.getElementById('secure-indicator');
+        const isSecure = tab.url.startsWith('https://');
+        secure.textContent = isSecure ? '◆' : '◇';
+        secure.classList.toggle('insecure', !isSecure);
+        setBusy(tab.loading);
+        document.title = `${tab.title || 'New tab'} — NEXUS Browser`;
+      };
+      const renderTabs = (items) => {
+        tabs.clear();
+        for (const tab of items) tabs.set(tab.id, tab);
+        activeTabId = items.find((tab) => tab.active)?.id || activeTabId;
+        tabsElement.replaceChildren();
+        for (const tab of items) {
+          const button = document.createElement('button');
+          button.className = `tab${tab.active ? ' active' : ''}`;
+          button.type = 'button';
+          button.setAttribute('role', 'tab');
+          button.setAttribute('aria-selected', String(tab.active));
+          button.title = `${tab.title || 'New tab'}\n${tab.url}`;
+          const icon = document.createElement('span');
+          icon.className = 'tab-icon';
+          if (tab.favicon) {
+            const image = document.createElement('img');
+            image.src = tab.favicon;
+            image.alt = '';
+            icon.append(image);
+          } else {
+            icon.textContent = tab.loading ? '◌' : '◈';
+          }
+          const title = document.createElement('span');
+          title.className = 'tab-title';
+          title.textContent = tab.title || 'New tab';
+          const close = document.createElement('span');
+          close.className = 'tab-close';
+          close.setAttribute('role', 'button');
+          close.setAttribute('aria-label', `Close ${tab.title || 'tab'}`);
+          close.textContent = '×';
+          close.addEventListener('click', (event) => {
+            event.stopPropagation();
+            api.closeTab(tab.id);
+          });
+          button.append(icon, title, close);
+          button.addEventListener('click', () => api.activateTab(tab.id));
+          button.addEventListener('auxclick', (event) => {
+            if (event.button === 1) api.closeTab(tab.id);
+          });
+          tabsElement.append(button);
+        }
+        activePage();
+      };
+      const renderBookmarkShortcuts = () => {
+        const shortcuts = document.getElementById('bookmark-shortcuts');
+        shortcuts.replaceChildren();
+        bookmarks.slice(0, 7).forEach((bookmark) => {
+          const button = document.createElement('button');
+          button.className = 'bookmark-shortcut';
+          button.type = 'button';
+          button.textContent = bookmark.title || bookmark.url;
+          button.title = bookmark.url;
+          button.addEventListener('click', () => api.openBookmark(bookmark.id));
+          shortcuts.append(button);
+        });
+      };
+      const renderBookmarkManager = () => {
+        panel.replaceChildren();
+        const heading = document.createElement('div');
+        heading.className = 'panel-top';
+        heading.innerHTML = '<div><h1>Bookmarks</h1><p>Your saved pages stay on this device.</p></div>';
+        const close = document.createElement('button');
+        close.className = 'close-panel';
+        close.type = 'button';
+        close.textContent = '×';
+        close.setAttribute('aria-label', 'Close bookmarks');
+        close.addEventListener('click', hidePanel);
+        heading.append(close);
+        const list = document.createElement('div');
+        list.className = 'item-list';
+        if (!bookmarks.length) list.innerHTML = '<div class="empty-state">No bookmarks yet. Use the star beside the address bar to save a page.</div>';
+        bookmarks.forEach((item) => {
+          const row = document.createElement('div');
+          row.className = 'list-item';
+          const main = document.createElement('button');
+          main.className = 'list-item-main';
+          main.type = 'button';
+          main.style.textAlign = 'left';
+          main.style.background = 'transparent';
+          main.innerHTML = '<span class="list-item-title"></span><span class="list-item-url"></span>';
+          main.querySelector('.list-item-title').textContent = item.title || item.url;
+          main.querySelector('.list-item-url').textContent = item.url;
+          main.addEventListener('click', () => { hidePanel(); api.openBookmark(item.id); });
+          const remove = document.createElement('button');
+          remove.className = 'list-action danger';
+          remove.type = 'button';
+          remove.textContent = 'Remove';
+          remove.addEventListener('click', () => api.removeBookmark(item.id));
+          row.append(main, remove);
+          list.append(row);
+        });
+        panel.append(heading, list);
+      };
+      const renderHistory = async (query = '') => {
+        const searchHadFocus = document.activeElement?.classList.contains('search-field');
+        const selectionStart = searchHadFocus ? document.activeElement.selectionStart : 0;
+        const generation = ++historySearchGeneration;
+        panel.replaceChildren();
+        const heading = document.createElement('div');
+        heading.className = 'panel-top';
+        heading.innerHTML = '<div><h1>Browsing history</h1><p>Search pages visited in this browser profile.</p></div>';
+        const clear = document.createElement('button');
+        clear.className = 'list-action danger';
+        clear.type = 'button';
+        clear.textContent = 'Clear history';
+        clear.addEventListener('click', async () => {
+          await api.clearHistory();
+          renderHistory();
+        });
+        const close = document.createElement('button');
+        close.className = 'close-panel';
+        close.type = 'button';
+        close.textContent = '×';
+        close.setAttribute('aria-label', 'Close history');
+        close.addEventListener('click', hidePanel);
+        heading.append(clear, close);
+        const search = document.createElement('input');
+        search.className = 'search-field';
+        search.type = 'search';
+        search.placeholder = 'Search history';
+        search.value = query;
+        search.addEventListener('input', () => renderHistory(search.value));
+        const list = document.createElement('div');
+        list.className = 'item-list';
+        panel.append(heading, search, list);
+        if (searchHadFocus) {
+          search.focus();
+          search.setSelectionRange(selectionStart, selectionStart);
+        }
+        try {
+          const results = await api.searchHistory(query);
+          if (generation !== historySearchGeneration) return;
+          if (!results.length) {
+            list.innerHTML = '<div class="empty-state">No matching history items.</div>';
+            return;
+          }
+          results.forEach((item) => {
+            const row = document.createElement('button');
+            row.className = 'list-item';
+            row.type = 'button';
+            row.style.textAlign = 'left';
+            row.style.width = '100%';
+            row.innerHTML = '<span class="list-item-main"><span class="list-item-title"></span><span class="list-item-url"></span></span><span class="list-item-meta"></span>';
+            row.querySelector('.list-item-title').textContent = item.title || item.url;
+            row.querySelector('.list-item-url').textContent = item.url;
+            row.querySelector('.list-item-meta').textContent = new Date(item.visitedAt).toLocaleString();
+            row.addEventListener('click', () => { hidePanel(); api.navigate(item.url); });
+            list.append(row);
+          });
+        } catch (error) {
+          list.innerHTML = '<div class="empty-state">History could not be loaded.</div>';
+          showError(error.message);
+        }
+      };
+      const renderDownloads = async () => {
+        panel.replaceChildren();
+        const heading = document.createElement('div');
+        heading.className = 'panel-top';
+        heading.innerHTML = '<div><h1>Downloads</h1><p>Files are saved to your Windows Downloads folder.</p></div>';
+        const close = document.createElement('button');
+        close.className = 'close-panel';
+        close.type = 'button';
+        close.textContent = '×';
+        close.setAttribute('aria-label', 'Close downloads');
+        close.addEventListener('click', hidePanel);
+        heading.append(close);
+        const list = document.createElement('div');
+        list.className = 'item-list';
+        panel.append(heading, list);
+        try {
+          const entries = await api.showDownloads();
+          if (!entries.length) list.innerHTML = '<div class="empty-state">Downloads started from this browser will appear here.</div>';
+          entries.forEach((item) => {
+            const row = document.createElement('div');
+            row.className = 'list-item';
+            const main = document.createElement('div');
+            main.className = 'list-item-main';
+            const title = document.createElement('span');
+            title.className = 'list-item-title';
+            title.textContent = item.name;
+            const status = document.createElement('span');
+            status.className = 'list-item-url';
+            status.textContent = item.state === 'completed'
+              ? `Completed · ${item.path}`
+              : item.state === 'interrupted'
+                ? 'Download interrupted'
+                : `Downloading · ${formatSize(item.receivedBytes)} of ${formatSize(item.totalBytes)}`;
+            main.append(title, status);
+            row.append(main);
+            if (item.state === 'completed') {
+              const open = document.createElement('button');
+              open.className = 'list-action';
+              open.type = 'button';
+              open.textContent = 'Open';
+              open.addEventListener('click', async () => {
+                try { await api.openDownload(item.id); } catch (error) { showError(error.message); }
+              });
+              const location = document.createElement('button');
+              location.className = 'list-action';
+              location.type = 'button';
+              location.textContent = 'Show';
+              location.addEventListener('click', () => api.showDownloadLocation(item.id));
+              row.append(open, location);
+            }
+            list.append(row);
+          });
+        } catch (error) {
+          list.innerHTML = '<div class="empty-state">Downloads could not be loaded.</div>';
+          showError(error.message);
+        }
+      };
+      const hidePanel = () => {
+        activePanel = '';
+        panel.hidden = true;
+        document.querySelectorAll('[data-panel]').forEach((item) => item.classList.remove('active'));
+        api.setBounds(false);
+      };
+      const showPanel = async (name) => {
+        if (activePanel === name) { hidePanel(); return; }
+        activePanel = name;
+        panel.hidden = false;
+        document.querySelectorAll('[data-panel]').forEach((item) => item.classList.toggle('active', item.dataset.panel === name));
+        await api.setBounds(true);
+        if (name === 'bookmarks') renderBookmarkManager();
+        if (name === 'history') await renderHistory();
+        if (name === 'downloads') await renderDownloads();
+      };
+
+      document.getElementById('new-tab').addEventListener('click', () => api.newTab());
+      document.getElementById('back').addEventListener('click', () => api.back());
+      document.getElementById('forward').addEventListener('click', () => api.forward());
+      document.getElementById('reload').addEventListener('click', () => api.reload());
+      document.getElementById('stop').addEventListener('click', () => api.stop());
+      document.getElementById('home').addEventListener('click', () => api.home());
+      document.getElementById('bookmark-toggle').addEventListener('click', async () => {
+        const tab = activeTab();
+        if (!tab) return;
+        const bookmark = bookmarks.find((item) => item.url === tab.url);
+        if (bookmark) await api.removeBookmark(bookmark.id);
+        else await api.addBookmark();
+      });
+      document.getElementById('open-external').addEventListener('click', async () => {
+        try { await api.openExternal(); } catch (error) { showError(error.message); }
+      });
+      address.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') { event.preventDefault(); api.navigate(address.value); address.blur(); }
+      });
+      document.querySelectorAll('[data-panel]').forEach((button) => {
+        button.addEventListener('click', () => showPanel(button.dataset.panel));
+      });
+      document.addEventListener('keydown', (event) => {
+        const key = event.key.toLowerCase();
+        if ((event.ctrlKey || event.metaKey) && key === 't') { event.preventDefault(); api.newTab(); }
+        else if ((event.ctrlKey || event.metaKey) && key === 'w') { event.preventDefault(); if (activeTabId) api.closeTab(activeTabId); }
+        else if ((event.ctrlKey || event.metaKey) && key === 'tab') {
+          event.preventDefault();
+          const ids = [...tabs.keys()];
+          if (ids.length > 1) {
+            const index = ids.indexOf(activeTabId);
+            api.activateTab(ids[(index + (event.shiftKey ? -1 : 1) + ids.length) % ids.length]);
+          }
+        } else if ((event.ctrlKey || event.metaKey) && key === 'l') {
+          event.preventDefault();
+          hidePanel();
+          address.focus();
+          address.select();
+        } else if ((event.ctrlKey || event.metaKey) && key === 'r') { event.preventDefault(); api.reload(); }
+        else if (event.altKey && key === 'arrowleft') { event.preventDefault(); api.back(); }
+        else if (event.altKey && key === 'arrowright') { event.preventDefault(); api.forward(); }
+        else if (event.key === 'Escape' && activeTab()?.loading) api.stop();
+      });
+      new ResizeObserver(() => api.setBounds(Boolean(activePanel))).observe(chrome);
+      window.nexusDesktop.onBrowserEvent((event) => {
+        if (event.type === 'state') {
+          renderTabs(event.tabs || []);
+          bookmarks = event.bookmarks || bookmarks;
+          renderBookmarkShortcuts();
+          if (activePanel === 'bookmarks') renderBookmarkManager();
+          if (activePanel === 'downloads') renderDownloads();
+        } else if (event.type === 'bookmarks-updated') {
+          bookmarks = event.bookmarks || [];
+          renderBookmarkShortcuts();
+          if (activePanel === 'bookmarks') renderBookmarkManager();
+        } else if (event.type === 'navigation-error') {
+          showError(`Could not load ${event.url}: ${event.message}`);
+        } else if (event.type === 'download-updated' && activePanel === 'downloads') {
+          renderDownloads();
+        } else if (event.type === 'history-updated' && activePanel === 'history') {
+          renderHistory();
+        }
+      });
+      api.getData().then((data) => {
+        bookmarks = data.bookmarks || [];
+        renderBookmarkShortcuts();
+      }).catch((error) => showError(error.message));
+    </script>
+  </body>
+</html>

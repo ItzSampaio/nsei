@@ -1,0 +1,54 @@
+{
+  "name": "nexus-os",
+  "version": "4.0.0",
+  "description": "NEXUS OS 4.0 — a premium desktop operating system experience built with HTML, CSS, JavaScript, and Electron.",
+  "main": "electron/main.js",
+  "scripts": {
+    "postinstall": "install-electron",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder --dir",
+    "dist": "electron-builder --win",
+    "check": "node --check electron/main.js && node --check electron/preload.js && node --check electron/browser.js && node --check electron/security.js"
+  },
+  "keywords": [
+    "desktop",
+    "operating-system",
+    "nexus-os",
+    "electron",
+    "browser"
+  ],
+  "author": "NEXUS OS",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^45.3.2",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.nexusos.desktop",
+    "productName": "NEXUS OS",
+    "files": [
+      "index.html",
+      "css/**",
+      "js/**",
+      "assets/**",
+      "electron/**",
+      "!**/*.map",
+      "!**/.DS_Store"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icons/nexus-os-icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "allowScripts": {
+    "electron@45.3.2": true
+  }
+}
