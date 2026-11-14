@@ -4,27 +4,50 @@ NEXUS OS 4.0 keeps the existing browser-based desktop experience and adds a sepa
 
 ## Run NEXUS OS from GitHub
 
-### Open the web version
+Choose one option:
 
-GitHub's source-code pages do not run the app directly. To use it online, enable GitHub Pages for this repository:
+### Option A: Use it in your browser (recommended)
 
-1. Open [Settings → Pages](https://github.com/ItzSampaio/nsei/settings/pages).
-2. Under **Build and deployment**, choose **Deploy from a branch**.
-3. Select the `main` branch and `/ (root)`, then click **Save**.
-4. Wait for the Pages deployment to finish, then open **Visit site**. The expected address is [https://itzsampaio.github.io/nsei/](https://itzsampaio.github.io/nsei/).
+1. Open the repository's [GitHub Pages settings](https://github.com/ItzSampaio/nsei/settings/pages).
+2. Find **Build and deployment**.
+3. For **Source**, choose **Deploy from a branch**.
+4. For **Branch**, choose `main`.
+5. For the folder, choose `/ (root)`.
+6. Click **Save**.
+7. Wait a few minutes. Refresh the Pages settings page; when GitHub shows that the site is published, click **Visit site**. The site address should be [https://itzsampaio.github.io/nsei/](https://itzsampaio.github.io/nsei/).
+8. If you see a 404, wait a little longer and try again. Confirm the selected branch is `main` and the folder is `/ (root)`.
 
-Alternatively, download the repository using **Code → Download ZIP**, extract it, and open `index.html` in a modern browser. For local web development, open the folder in VS Code and use Live Server.
+You cannot run the app by opening the GitHub code page or the README. GitHub Pages hosts the **web version**; it does not install the Windows desktop application.
 
-### Run the Windows desktop version
+### Option B: Run the web version on your computer
 
-The GitHub Pages website is the browser version, not the Electron desktop app. To run the desktop build, download the repository ZIP, extract it, install Node.js LTS, open a terminal in the project folder, and run:
+1. On the repository page, click the green **Code** button.
+2. Click **Download ZIP**.
+3. When the download finishes, right-click the ZIP file and choose **Extract All**.
+4. Open the extracted `nsei-main` folder.
+5. Double-click `index.html`. It should open in your default web browser.
+
+### Option C: Run the Windows desktop app (Electron)
+
+1. Install the current **Node.js LTS** release from [nodejs.org](https://nodejs.org/). npm is included with Node.js.
+2. Download the repository ZIP using **Code → Download ZIP**, then extract it as described above.
+3. Open the extracted project folder in File Explorer.
+4. Click the folder address bar, type `powershell`, and press **Enter** to open PowerShell in that folder.
+5. Install the project dependencies by running:
 
 ```powershell
 npm install
+```
+
+6. Start NEXUS OS by running:
+
+```powershell
 npm run dev
 ```
 
-To build a Windows installer instead, run `npm run dist`; this creates `dist\NEXUS OS Setup 4.0.0.exe` locally. Build output and the installer are not stored in this source repository.
+7. To close the desktop app, close its window as you would any other Windows app.
+
+To build an installer yourself, run `npm run dist` in the same PowerShell window. The installer will be created locally at `dist\NEXUS OS Setup 4.0.0.exe`; it is not included in the GitHub source download. The Electron desktop browser has a known visual rendering issue, so the installer should be treated as a test build.
 
 ## Current verification status
 
