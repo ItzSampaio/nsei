@@ -2,6 +2,30 @@
 
 NEXUS OS 4.0 keeps the existing browser-based desktop experience and adds a separate Electron desktop shell for real Windows application packaging while preserving the GitHub Pages web version. The project stays fully client-side with HTML, CSS, and vanilla JavaScript, no backend, and local persistence.
 
+## Run NEXUS OS from GitHub
+
+### Open the web version
+
+GitHub's source-code pages do not run the app directly. To use it online, enable GitHub Pages for this repository:
+
+1. Open [Settings → Pages](https://github.com/ItzSampaio/nsei/settings/pages).
+2. Under **Build and deployment**, choose **Deploy from a branch**.
+3. Select the `main` branch and `/ (root)`, then click **Save**.
+4. Wait for the Pages deployment to finish, then open **Visit site**. The expected address is [https://itzsampaio.github.io/nsei/](https://itzsampaio.github.io/nsei/).
+
+Alternatively, download the repository using **Code → Download ZIP**, extract it, and open `index.html` in a modern browser. For local web development, open the folder in VS Code and use Live Server.
+
+### Run the Windows desktop version
+
+The GitHub Pages website is the browser version, not the Electron desktop app. To run the desktop build, download the repository ZIP, extract it, install Node.js LTS, open a terminal in the project folder, and run:
+
+```powershell
+npm install
+npm run dev
+```
+
+To build a Windows installer instead, run `npm run dist`; this creates `dist\NEXUS OS Setup 4.0.0.exe` locally. Build output and the installer are not stored in this source repository.
+
 ## Current verification status
 
 - The Electron desktop and Windows installer build successfully; the installed desktop was launched and remained visible.
