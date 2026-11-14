@@ -11,6 +11,18 @@ NEXUS OS is a polished desktop-style environment built with vanilla HTML, CSS, J
 - **Live Wallpapers** - built-in animated wallpapers and local image/video imports with reduced-motion support.
 - **NEXUS Recovery** - validated, versioned backups with selective restore and safety-backup export.
 
+## NEXUS OS 7.0 feature pack
+
+- **NEXUS Hologram** provides a local assistant surface for time, status, settings, games, and other desktop actions. It does not send prompts or data to a remote AI service.
+- **NEXUS God Mode** provides searchable access to advanced NEXUS controls.
+- **NEXUS Garage** saves concept-car builds with paint, wheels, spoilers, and names.
+- **Digital Dashboard** provides interactive local speed, RPM, gear, and drive-mode controls.
+- **NEXUS Focus** provides a local Pomodoro-style focus timer.
+- **NEXUS Monitor Pro** shows renderer heap availability, session time, and display telemetry where the browser exposes it.
+- **Dynamic Desktop** and **Theme Marketplace** provide safe built-in personalization presets.
+
+These features are local-first and use the existing NEXUS application registry, window manager, settings system, and renderer security model.
+
 ## NEXUS Game Center
 
 The Games application is an integrated local game hub with searchable categories, favourites, recently played games, achievements, local leaderboards, and game settings. It currently includes 22 catalogue entries:

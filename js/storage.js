@@ -10,7 +10,7 @@
   const WIDGETS_KEY = 'nexus-os-widgets-v1';
   const LAYOUTS_KEY = 'nexus-os-layouts-v1';
   const WALLPAPERS_KEY = 'nexus-os-custom-wallpapers-v1';
-  const appIds = ['terminal','explorer','calculator','notes','settings','about','music','browser','monitor','games','calendar','gallery','paint','time','worldclock','password','tasks','recycle','store','recovery','widgets'];
+  const appIds = ['terminal','explorer','calculator','notes','settings','about','music','browser','monitor','games','calendar','gallery','paint','time','worldclock','password','tasks','recycle','store','recovery','widgets','hologram','godmode','garage','dashboard','focus','monitorpro','dynamic','themes'];
   const defaults = {
     accent: 'violet', wallpaper: 'nexus', theme: 'dark', username: 'Guest',
     avatar: '👩‍🚀', bootAnimation: true, startupSound: false, showIcons: true,

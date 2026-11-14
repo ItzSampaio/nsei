@@ -1,6 +1,6 @@
 {
   "name": "nexus-os",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "description": "NEXUS OS 6.0 — a premium desktop operating system experience built with HTML, CSS, JavaScript, and Electron.",
   "main": "electron/main.js",
   "scripts": {

@@ -22,6 +22,14 @@
     { id: 'store', name: 'NEXUS Store', icon: 'store', description: 'Manage built-in apps' },
     { id: 'widgets', name: 'Desktop Widgets', icon: 'widget', description: 'Add and arrange desktop widgets' },
     { id: 'recovery', name: 'NEXUS Recovery', icon: 'recovery', description: 'Back up and restore your data' }
+    ,{ id: 'hologram', name: 'NEXUS Hologram', icon: 'info', description: 'Your local desktop assistant' }
+    ,{ id: 'godmode', name: 'NEXUS God Mode', icon: 'settings', description: 'Advanced system control center' }
+    ,{ id: 'garage', name: 'NEXUS Garage', icon: 'games', description: 'Build your concept car collection' }
+    ,{ id: 'dashboard', name: 'Digital Dashboard', icon: 'monitor', description: 'Live driving instrumentation' }
+    ,{ id: 'focus', name: 'NEXUS Focus', icon: 'time', description: 'Focus sessions and productivity' }
+    ,{ id: 'monitorpro', name: 'NEXUS Monitor Pro', icon: 'monitor', description: 'Detailed local telemetry' }
+    ,{ id: 'dynamic', name: 'Dynamic Desktop', icon: 'wallpaper', description: 'Time-aware desktop atmosphere' }
+    ,{ id: 'themes', name: 'Theme Marketplace', icon: 'store', description: 'Preview built-in visual themes' }
   ];
   const accentColors = { violet: ['#9c7cff', '156, 124, 255'], blue: ['#58a6ff', '88, 166, 255'], cyan: ['#49d6d1', '73, 214, 209'], rose: ['#ff75a0', '255, 117, 160'], amber: ['#f2b95f', '242, 185, 95'] };
   const wallpapers = {
@@ -1173,6 +1181,7 @@
   const makers = {
     terminal: createTerminal, calculator: createCalculator, explorer: createExplorer, settings: createSettings, notes: createNotes, about: createAbout,
     store: () => window.NexusStore.create(), widgets: () => window.NexusWidgets.createManager(), recovery: () => window.NexusRecovery.create(),
+    hologram: () => window.NexusFuture.hologram(), godmode: () => window.NexusFuture.godMode(), garage: () => window.NexusFuture.garage(), dashboard: () => window.NexusFuture.dashboard(), focus: () => window.NexusFuture.focus(), monitorpro: () => window.NexusFuture.monitorPro(), dynamic: () => window.NexusFuture.dynamic(), themes: () => window.NexusFuture.marketplace(),
     music: () => window.NexusMusic.create(), browser: () => window.NexusBrowser.create(), monitor: () => window.NexusMonitor.create(),
     games: () => window.NexusGames.create(), calendar: () => window.NexusCalendar.create(),
     gallery: () => window.NexusGallery.create(), paint: () => window.NexusPaint.create(),
@@ -1185,7 +1194,7 @@
     monitor:{width:650,height:550}, games:{width:570,height:590}, calendar:{width:650,height:650},
     gallery:{width:820,height:620}, paint:{width:820,height:650}, time:{width:460,height:500}, worldclock:{width:560,height:620},
     password:{width:470,height:570}, tasks:{width:650,height:620}, recycle:{width:620,height:520},
-    store:{width:900,height:700}, widgets:{width:620,height:600}, recovery:{width:700,height:680}
+    store:{width:900,height:700}, widgets:{width:620,height:600}, recovery:{width:700,height:680}, hologram:{width:560,height:620}, godmode:{width:650,height:650}, garage:{width:620,height:650}, dashboard:{width:560,height:620}, focus:{width:460,height:500}, monitorpro:{width:620,height:500}, dynamic:{width:560,height:430}, themes:{width:620,height:520}
   };
   function open(id) {
     const app = apps.find(item => item.id === id);
